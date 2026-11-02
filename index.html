@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>光的直進與反射/散射教學模擬器</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <style>
+        * {
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            touch-action: none; /* Prevent touch scrolling on iPad Safari while dragging elements */
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-cyan-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 sticky top-0 z-50 backdrop-blur">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-cyan-400 flex items-center justify-center">
+                    <!-- Laser Bolt SVG Icon -->
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg md:text-xl tracking-wide text-white flex items-center gap-2">
+                        光的直進與反射 / 散射 <span class="text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-normal">物理互動教學實驗室</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">適用於電腦與 iPad Safari 觸控瀏覽之中學光學模擬器</p>
+                </div>
+            </div>
+
+            <!-- Category Selection Tabs -->
+            <div class="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+                <button id="tabTransparent" onclick="selectCategory('transparent')" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span> 透明（直進）
+                </button>
+                <button id="tabSmooth" onclick="selectCategory('smooth')" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 光滑（鏡面反射）
+                </button>
+                <button id="tabRough" onclick="selectCategory('rough')" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> 粗糙（散射）
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl w-full mx-auto p-3 sm:p-4 md:p-6 flex-1 flex flex-col lg:flex-row gap-5">
+
+        <!-- Left Control Sidebar -->
+        <aside class="w-full lg:w-80 flex flex-col gap-4 shrink-0">
+            
+            <!-- 5 Objects Quick Selection Grid -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+                    <h2 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                        被照射物體選擇 (置於左側)
+                    </h2>
+                    <span id="matCategoryBadge" class="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">鏡面反射</span>
+                </div>
+
+                <!-- 5 Buttons Container -->
+                <div class="space-y-2 mb-3" id="objectButtonsContainer">
+                    <!-- Dynamic Buttons via JS -->
+                </div>
+
+                <!-- Object Rotation Angle -->
+                <div class="pt-2 border-t border-slate-800/80 space-y-3">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">物體傾斜角度</span>
+                            <span class="text-amber-400 font-mono font-bold" id="valObjAngle">90°</span>
+                        </div>
+                        <input type="range" id="sliderObjAngle" min="0" max="180" value="90" oninput="onObjAngleChange(this.value)" class="w-full accent-amber-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
+                    </div>
+
+                    <!-- Lock Object Toggle -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400">固定物體位置與角度</span>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="lockObject" onchange="updateState()" class="sr-only peer">
+                            <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500 relative"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laser Source Control Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+                    <h2 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                        雷射光發射器 (置於右側)
+                    </h2>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="laserPower" checked onchange="updateState()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500 relative"></div>
+                        <span class="ml-2 text-xs font-semibold text-slate-300" id="laserPowerText">開啟</span>
+                    </label>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Laser Color Selector -->
+                    <div>
+                        <label class="text-xs text-slate-400 mb-1.5 block">雷射光顏色</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setLaserColor('#ef4444')" id="btnColorRed" class="py-1.5 px-2 rounded-lg border border-red-500/80 bg-red-500/20 text-red-400 text-xs font-semibold flex items-center justify-center gap-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> 紅光
+                            </button>
+                            <button onclick="setLaserColor('#22c55e')" id="btnColorGreen" class="py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 text-xs font-medium flex items-center justify-center gap-1 hover:bg-slate-700">
+                                <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span> 綠光
+                            </button>
+                            <button onclick="setLaserColor('#3b82f6')" id="btnColorBlue" class="py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 text-xs font-medium flex items-center justify-center gap-1 hover:bg-slate-700">
+                                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> 藍光
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Laser Angle Slider -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400">照射角度 (向左發射)</span>
+                            <span class="text-cyan-400 font-mono font-bold" id="valLaserAngle">160°</span>
+                        </div>
+                        <input type="range" id="sliderLaserAngle" min="-180" max="180" value="160" oninput="onLaserAngleChange(this.value)" class="w-full accent-cyan-400 bg-slate-800 rounded-lg h-2 cursor-pointer">
+                    </div>
+
+                    <!-- Lock Laser Toggle -->
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                        <span class="text-xs text-slate-400">固定雷射位置與角度</span>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="lockLaser" onchange="updateState()" class="sr-only peer">
+                            <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-cyan-500 relative"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teaching Auxiliary Tools Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                <h2 class="font-bold text-sm text-slate-200 border-b border-slate-800 pb-2.5">
+                    教學輔助工具
+                </h2>
+
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <label class="flex items-center gap-2 p-2 bg-slate-950/60 rounded-xl border border-slate-800/80 cursor-pointer hover:bg-slate-800/50">
+                        <input type="checkbox" id="chkShowNormal" checked onchange="updateState()" class="accent-purple-400 rounded">
+                        <span>顯示法線 (虛線)</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2 bg-slate-950/60 rounded-xl border border-slate-800/80 cursor-pointer hover:bg-slate-800/50">
+                        <input type="checkbox" id="chkShowAngles" checked onchange="updateState()" class="accent-purple-400 rounded">
+                        <span>顯示角度標註</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2 bg-slate-950/60 rounded-xl border border-slate-800/80 cursor-pointer hover:bg-slate-800/50">
+                        <input type="checkbox" id="chkShowProtractor" checked onchange="updateState()" class="accent-purple-400 rounded">
+                        <span>半圓量角器</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2 bg-slate-950/60 rounded-xl border border-slate-800/80 cursor-pointer hover:bg-slate-800/50">
+                        <input type="checkbox" id="chkShowGrid" checked onchange="updateState()" class="accent-purple-400 rounded">
+                        <span>座標網格</span>
+                    </label>
+                </div>
+
+                <button onclick="resetSimulation()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-2 border border-slate-700">
+                    重置實驗位置
+                </button>
+            </div>
+
+        </aside>
+
+        <!-- Right Simulation Main Canvas Viewport -->
+        <section class="flex-1 flex flex-col gap-4 min-w-0">
+            
+            <div class="relative w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex-1 min-h-[460px] md:min-h-[560px] flex flex-col">
+                
+                <!-- HUD Real-Time Angle Bar -->
+                <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none z-10">
+                    <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800/90 backdrop-blur px-3 py-1.5 rounded-xl text-xs font-medium">
+                        <span class="text-slate-400">目前物體：</span>
+                        <span id="hudObjectTitle" class="text-cyan-300 font-bold">平面鏡</span>
+                    </div>
+
+                    <div id="angleHUD" class="flex items-center gap-3 bg-slate-950/80 border border-slate-800/90 backdrop-blur px-3 py-1.5 rounded-xl text-xs font-mono">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>
+                            <span class="text-slate-400">入射角 (θ₁):</span>
+                            <span id="hudAngleInc" class="text-blue-300 font-bold text-sm">20.0°</span>
+                        </div>
+                        <div class="w-px h-3 bg-slate-700"></div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                            <span class="text-slate-400">反射角 (θ₂):</span>
+                            <span id="hudAngleRef" class="text-emerald-300 font-bold text-sm">20.0°</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HTML5 Canvas Container -->
+                <div class="relative w-full h-full flex-1">
+                    <canvas id="simCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                </div>
+
+                <!-- Touch Operation Footnote -->
+                <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] text-slate-400 pointer-events-none bg-slate-950/70 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-800/50">
+                    <div>
+                        <span>操作提示：用<b>手指/滑鼠</b>拖曳右側雷射發射器與左側物體，拖動圓點可調整旋轉角度。</span>
+                    </div>
+                    <span id="canvasDimensions" class="font-mono hidden sm:inline text-slate-500">800 x 600</span>
+                </div>
+            </div>
+
+            <!-- Concept Educational Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-xl space-y-1 hover:border-slate-700 transition">
+                    <div class="flex items-center gap-2 text-cyan-400 font-bold text-xs sm:text-sm">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span> 1. 光的直進性 (透明體)
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        光在均勻介質中沿<b>直線傳播</b>。照射到透明物體（如空盒、玻璃窗、水壺）時，光線直接穿透並維持原直線方向前進。
+                    </p>
+                </div>
+
+                <div class="bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-xl space-y-1 hover:border-slate-700 transition">
+                    <div class="flex items-center gap-2 text-amber-400 font-bold text-xs sm:text-sm">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span> 2. 鏡面反射 (光滑面)
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        照射到光滑表面（如平面鏡、後照鏡、反光鏡）時發生規律反射，嚴格遵守<b>反射定律：入射角等於反射角</b> (&theta;₁ = &theta;₂)。
+                    </p>
+                </div>
+
+                <div class="bg-slate-900/90 border border-slate-800/80 p-3.5 rounded-xl space-y-1 hover:border-slate-700 transition">
+                    <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs sm:text-sm">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> 3. 散射 (粗糙面)
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        照射到粗糙表面（如木頭、白紙、紙箱、水泥路面）時向各方向散射。空氣中無法肉眼看到散射光線條，僅可在撞擊表面觀察到微光與亮點光暈。
+                    </p>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Simulation Logic JavaScript -->
+    <script>
+        /**
+         * 15 Selectable 2D Recognized Educational Objects Database
+         * 3 Categories x 5 Items Each
+         */
+        const OBJECT_DATABASE = {
+            transparent: [
+                { id: 'trans_box', name: '透明空盒', desc: '內部充滿煙霧的透明壓克力盒' },
+                { id: 'trans_window', name: '玻璃窗', desc: '木質外框與雙層玻璃窗戶' },
+                { id: 'trans_acrylic', name: '壓克力板', desc: '青藍透亮光學壓克力厚板' },
+                { id: 'trans_bag', name: '透明塑膠袋', desc: '帶有摺痕與提把的透明提袋' },
+                { id: 'trans_bottle', name: '透明水壺', desc: '裝有淨水的清透塑膠水壺' }
+            ],
+            smooth: [
+                { id: 'smooth_mirror', name: '平面鏡', desc: '邊框鍍銀高反射平面鏡' },
+                { id: 'smooth_rearview', name: '車子後照鏡', desc: '汽車黑色外殼車外後視鏡' },
+                { id: 'smooth_cutlery', name: '不鏽鋼餐具', desc: '高拋光鏡面不鏽鋼湯匙餐具' },
+                { id: 'smooth_water', name: '靜止水面', desc: '平整無波紋的水槽水面' },
+                { id: 'smooth_road_mirror', name: '反光鏡', desc: '道路轉角圓形凸面安全反光鏡' }
+            ],
+            rough: [
+                { id: 'rough_wood', name: '木頭板', desc: '溫暖木紋與樹結實木板' },
+                { id: 'rough_paper', name: '白紙', desc: '右上角有摺角的圖畫紙' },
+                { id: 'rough_cardboard', name: '影印紙箱', desc: '牛皮紙質與封箱膠帶紙箱' },
+                { id: 'rough_frosted', name: '磨砂玻璃', desc: '微小顆粒霧面毛玻璃' },
+                { id: 'rough_concrete', name: '水泥路面', desc: '帶有細小石子紋理的水泥路面' }
+            ]
+        };
+
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Main State
+        const state = {
+            category: 'smooth', // 'transparent', 'smooth', 'rough'
+            selectedObjectId: 'smooth_mirror',
+            laser: {
+                x: 650, // Positioned on RIGHT
+                y: 300,
+                angle: 160, // Shooting leftward
+                power: true,
+                color: '#ef4444',
+                locked: false,
+                radius: 20
+            },
+            object: {
+                x: 260, // Positioned on LEFT/CENTER
+                y: 300,
+                angle: 90, // Vertical orientation
+                length: 220,
+                thickness: 44,
+                locked: false
+            },
+            tools: {
+                showNormal: true,
+                showAngles: true,
+                showProtractor: true,
+                showGrid: true
+            },
+            drag: {
+                active: false,
+                target: null, // 'laserPos', 'laserAngle', 'objPos', 'objAngle'
+                offsetX: 0,
+                offsetY: 0
+            },
+            viewportWidth: 800,
+            viewportHeight: 600
+        };
+
+        // Window & Canvas Resize Observer
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            if (!container) return;
+
+            const rect = container.getBoundingClientRect();
+            const w = rect.width || 800;
+            const h = rect.height || 550;
+            const dpr = window.devicePixelRatio || 1;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+
+            ctx.resetTransform();
+            ctx.scale(dpr, dpr);
+
+            state.viewportWidth = w;
+            state.viewportHeight = h;
+
+            document.getElementById('canvasDimensions').innerText = `${Math.round(w)} x ${Math.round(h)}`;
+        }
+
+        // Reset Laser on RIGHT and Target Object on LEFT
+        function resetSimulation() {
+            const w = state.viewportWidth || 800;
+            const h = state.viewportHeight || 600;
+
+            state.laser.x = Math.round(w * 0.78);
+            state.laser.y = Math.round(h * 0.5);
+            state.laser.angle = 160; // Shooting leftward
+
+            state.object.x = Math.round(w * 0.32);
+            state.object.y = Math.round(h * 0.5);
+            state.object.angle = state.category === 'smooth' ? 90 + SMOOTH_TILT : 90;
+
+            syncUIControls();
+        }
+
+        // Switch Category Tabs
+        // 光滑物體預設轉 25° 面向使用者，鏡面反射更明顯
+        const SMOOTH_TILT = 0;
+        function applySmoothTilt() {
+            if (state.category === 'smooth' && !state.object.locked) state.object.angle = 90 + SMOOTH_TILT;
+        }
+
+        function selectCategory(cat) {
+            state.category = cat;
+            state.selectedObjectId = OBJECT_DATABASE[cat][0].id;
+            applySmoothTilt();
+            renderObjectButtons();
+            syncUIControls();
+        }
+
+        // Render 5 Object Selector Buttons for current category
+        function renderObjectButtons() {
+            const container = document.getElementById('objectButtonsContainer');
+            container.innerHTML = '';
+
+            const list = OBJECT_DATABASE[state.category];
+            list.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                const isSelected = item.id === state.selectedObjectId;
+                
+                btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center justify-between ${
+                    isSelected 
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 font-semibold shadow' 
+                        : 'bg-slate-950/60 text-slate-300 border border-slate-800 hover:bg-slate-800/60 font-medium'
+                }`;
+
+                btn.onclick = () => {
+                    state.selectedObjectId = item.id;
+                    applySmoothTilt();
+                    renderObjectButtons();
+                    syncUIControls();
+                };
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full ${getCategoryBgColor(state.category)} text-slate-950 text-[10px] font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
+                        <div>
+                            <div class="font-bold">${item.name}</div>
+                            <div class="text-[10px] text-slate-400 font-normal">${item.desc}</div>
+                        </div>
+                    </div>
+                    ${isSelected ? '<span class="text-cyan-400 font-bold">✓</span>' : ''}
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function getCategoryBgColor(cat) {
+            if (cat === 'transparent') return 'bg-cyan-400';
+            if (cat === 'smooth') return 'bg-amber-400';
+            return 'bg-emerald-400';
+        }
+
+        function getSelectedObjectInfo() {
+            for (let cat in OBJECT_DATABASE) {
+                const found = OBJECT_DATABASE[cat].find(item => item.id === state.selectedObjectId);
+                if (found) return found;
+            }
+            return OBJECT_DATABASE.smooth[0];
+        }
+
+        // Sync UI Controls with State
+        function syncUIControls() {
+            document.getElementById('laserPower').checked = state.laser.power;
+            document.getElementById('laserPowerText').innerText = state.laser.power ? '開啟' : '關閉';
+            document.getElementById('sliderLaserAngle').value = Math.round(state.laser.angle);
+            document.getElementById('valLaserAngle').innerText = `${Math.round(state.laser.angle)}°`;
+            document.getElementById('lockLaser').checked = state.laser.locked;
+
+            document.getElementById('sliderObjAngle').value = Math.round(state.object.angle);
+            document.getElementById('valObjAngle').innerText = `${Math.round(state.object.angle)}°`;
+            document.getElementById('lockObject').checked = state.object.locked;
+
+            document.getElementById('chkShowNormal').checked = state.tools.showNormal;
+            document.getElementById('chkShowAngles').checked = state.tools.showAngles;
+            document.getElementById('chkShowProtractor').checked = state.tools.showProtractor;
+            document.getElementById('chkShowGrid').checked = state.tools.showGrid;
+
+            // Highlight Category Tabs
+            const tabs = {
+                transparent: document.getElementById('tabTransparent'),
+                smooth: document.getElementById('tabSmooth'),
+                rough: document.getElementById('tabRough')
+            };
+
+            const catBadges = {
+                transparent: '透明 (光直進)',
+                smooth: '光滑 (鏡面反射)',
+                rough: '粗糙 (散射)'
+            };
+
+            Object.keys(tabs).forEach(key => {
+                if (key === state.category) {
+                    tabs[key].className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow flex items-center gap-1.5";
+                } else {
+                    tabs[key].className = "px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition flex items-center gap-1.5";
+                }
+            });
+
+            document.getElementById('matCategoryBadge').innerText = catBadges[state.category];
+            const objInfo = getSelectedObjectInfo();
+            document.getElementById('hudObjectTitle').innerText = objInfo.name;
+        }
+
+        function setLaserColor(colorHex) {
+            state.laser.color = colorHex;
+            const btnRed = document.getElementById('btnColorRed');
+            const btnGreen = document.getElementById('btnColorGreen');
+            const btnBlue = document.getElementById('btnColorBlue');
+
+            btnRed.className = colorHex === '#ef4444' ? 'py-1.5 px-2 rounded-lg border border-red-500/80 bg-red-500/20 text-red-400 text-xs font-semibold flex items-center justify-center gap-1' : 'py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 text-xs flex items-center justify-center gap-1 hover:bg-slate-700';
+            btnGreen.className = colorHex === '#22c55e' ? 'py-1.5 px-2 rounded-lg border border-green-500/80 bg-green-500/20 text-green-400 text-xs font-semibold flex items-center justify-center gap-1' : 'py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 text-xs flex items-center justify-center gap-1 hover:bg-slate-700';
+            btnBlue.className = colorHex === '#3b82f6' ? 'py-1.5 px-2 rounded-lg border border-blue-500/80 bg-blue-500/20 text-blue-400 text-xs font-semibold flex items-center justify-center gap-1' : 'py-1.5 px-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 text-xs flex items-center justify-center gap-1 hover:bg-slate-700';
+        }
+
+        function onLaserAngleChange(val) {
+            state.laser.angle = parseFloat(val);
+            document.getElementById('valLaserAngle').innerText = `${Math.round(val)}°`;
+        }
+
+        function onObjAngleChange(val) {
+            state.object.angle = parseFloat(val);
+            document.getElementById('valObjAngle').innerText = `${Math.round(val)}°`;
+        }
+
+        function updateState() {
+            state.laser.power = document.getElementById('laserPower').checked;
+            state.laser.locked = document.getElementById('lockLaser').checked;
+            state.object.locked = document.getElementById('lockObject').checked;
+
+            state.tools.showNormal = document.getElementById('chkShowNormal').checked;
+            state.tools.showAngles = document.getElementById('chkShowAngles').checked;
+            state.tools.showProtractor = document.getElementById('chkShowProtractor').checked;
+            state.tools.showGrid = document.getElementById('chkShowGrid').checked;
+
+            document.getElementById('laserPowerText').innerText = state.laser.power ? '開啟' : '關閉';
+        }
+
+        // Geometry Math Functions
+        function degToRad(deg) { return deg * Math.PI / 180; }
+        function radToDeg(rad) { return rad * 180 / Math.PI; }
+
+        function getLineIntersection(p0, p1, p2, p3) {
+            const s1_x = p1.x - p0.x;
+            const s1_y = p1.y - p0.y;
+            const s2_x = p3.x - p2.x;
+            const s2_y = p3.y - p2.y;
+
+            const denom = -s2_x * s1_y + s1_x * s2_y;
+            if (Math.abs(denom) < 1e-6) return null;
+
+            const s = (-s1_y * (p0.x - p2.x) + s1_x * (p0.y - p2.y)) / denom;
+            const t = ( s2_x * (p0.y - p2.y) - s2_y * (p0.x - p2.x)) / denom;
+
+            if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+                return { x: p0.x + (t * s1_x), y: p0.y + (t * s1_y), t: t };
+            }
+            return null;
+        }
+
+        function getRayBoundaryPoint(origin, dir, maxDist = 2500) {
+            return {
+                x: origin.x + dir.x * maxDist,
+                y: origin.y + dir.y * maxDist
+            };
+        }
+
+        function getObjectSegment() {
+            const rad = degToRad(state.object.angle);
+            const dx = Math.cos(rad) * (state.object.length / 2);
+            const dy = Math.sin(rad) * (state.object.length / 2);
+
+            return {
+                p1: { x: state.object.x - dx, y: state.object.y - dy },
+                p2: { x: state.object.x + dx, y: state.object.y + dy }
+            };
+        }
+
+        // Main Canvas Render Loop
+        function render() {
+            const width = state.viewportWidth;
+            const height = state.viewportHeight;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. Grid lines
+            if (state.tools.showGrid) {
+                drawGrid(width, height);
+            }
+
+            // 2. Calculate Ray Intersection
+            const objSeg = getObjectSegment();
+            const laserRad = degToRad(state.laser.angle);
+            const laserDir = { x: Math.cos(laserRad), y: Math.sin(laserRad) };
+            const laserRayEnd = getRayBoundaryPoint(state.laser, laserDir, 2500);
+
+            const hit = getLineIntersection(state.laser, laserRayEnd, objSeg.p1, objSeg.p2);
+
+            let incidentAngle = 0;
+            let normalVec = { x: 0, y: 0 };
+
+            if (hit) {
+                const surfDir = { x: objSeg.p2.x - objSeg.p1.x, y: objSeg.p2.y - objSeg.p1.y };
+                const surfLen = Math.hypot(surfDir.x, surfDir.y);
+                const surfUnit = { x: surfDir.x / surfLen, y: surfDir.y / surfLen };
+
+                let n1 = { x: -surfUnit.y, y: surfUnit.x };
+                const dot = (-laserDir.x * n1.x) + (-laserDir.y * n1.y);
+                if (dot < 0) {
+                    n1 = { x: -n1.x, y: -n1.y };
+                }
+                normalVec = n1;
+
+                const cosTheta = Math.max(-1, Math.min(1, (-laserDir.x * normalVec.x) + (-laserDir.y * normalVec.y)));
+                incidentAngle = radToDeg(Math.acos(cosTheta));
+
+                document.getElementById('hudAngleInc').innerText = `${incidentAngle.toFixed(1)}°`;
+                document.getElementById('hudAngleRef').innerText = `${incidentAngle.toFixed(1)}°`;
+                document.getElementById('angleHUD').style.opacity = (state.category === 'smooth' && state.laser.power) ? '1' : '0.4';
+            } else {
+                document.getElementById('hudAngleInc').innerText = `--`;
+                document.getElementById('hudAngleRef').innerText = `--`;
+                document.getElementById('angleHUD').style.opacity = '0.4';
+            }
+
+            // 3. Semi-circle Protractor Tool
+            if (state.tools.showProtractor && hit && state.laser.power) {
+                drawProtractor(hit, normalVec);
+            }
+
+            // 4. Target 2D Object (Left/Center)
+            drawSelectedObject2D();
+
+            // 5. Laser Emitter Tool (Right)
+            drawLaserEmitter();
+
+            // 6. Beams and Reflection/Scattering Effects
+            if (state.laser.power) {
+                drawLaserBeams(hit, laserRayEnd, laserDir, normalVec, incidentAngle);
+            }
+
+            // 7. Interactive Control Handles
+            drawInteractiveHandles();
+
+            requestAnimationFrame(render);
+        }
+
+        // Draw Canvas Grid Lines
+        function drawGrid(w, h) {
+            ctx.save();
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < w; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            for (let y = 0; y < h; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Draw Semi-circle Protractor
+        function drawProtractor(hit, normalVec) {
+            ctx.save();
+            ctx.translate(hit.x, hit.y);
+            const normRad = Math.atan2(normalVec.y, normalVec.x);
+            ctx.rotate(normRad - Math.PI / 2);
+
+            const r = 90;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, Math.PI, 0, false);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Tick Marks
+            ctx.fillStyle = 'rgba(226, 232, 240, 0.85)';
+            ctx.font = '9px monospace';
+            ctx.textAlign = 'center';
+
+            for (let deg = 0; deg <= 180; deg += 10) {
+                const rad = degToRad(deg);
+                const isMajor = (deg % 30 === 0);
+                const tickLen = isMajor ? 10 : 5;
+
+                const x1 = Math.cos(rad) * r;
+                const y1 = -Math.sin(rad) * r;
+                const x2 = Math.cos(rad) * (r - tickLen);
+                const y2 = -Math.sin(rad) * (r - tickLen);
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = isMajor ? 'rgba(255, 255, 255, 0.8)' : 'rgba(148, 163, 184, 0.4)';
+                ctx.stroke();
+
+                if (isMajor) {
+                    const tx = Math.cos(rad) * (r - 18);
+                    const ty = -Math.sin(rad) * (r - 18);
+                    const angleVal = Math.abs(deg - 90);
+                    ctx.fillText(`${angleVal}°`, tx, ty + 3);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        /**
+         * Beautified 2D objects. Local frame: y=0 is the optical surface (collision line).
+         * -y faces the laser; opaque bodies extend toward +y. Drawing auto-flips to the laser's side.
+         */
+        const _pc = {};
+        const _rnd = (s) => { let a = s; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
+        const _rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+        const _lg = (x0, y0, x1, y1, ...st) => { const g = ctx.createLinearGradient(x0, y0, x1, y1); st.forEach(s => g.addColorStop(s[0], s[1])); return g; };
+        const _sh = (on) => { ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = on ? 14 : 0; };
+        const _scene = (x0, x1) => _lg(x0, 0, x1, 0, [0, '#38bdf8'], [.3, '#e0f2fe'], [.5, '#ffffff'], [.72, '#bae6fd'], [1, '#0ea5e9']);
+        function _glare(x, y, w, h, T) {
+            ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+            const p = x + ((T * 35) % (w + 90)) - 30, g = ctx.createLinearGradient(p, 0, p + 26, 0);
+            g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.5, 'rgba(255,255,255,.4)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(p + 10, y); ctx.lineTo(p + 36, y); ctx.lineTo(p + 26, y + h); ctx.lineTo(p, y + h); ctx.fill(); ctx.restore();
+        }
+        function _glass(x, y, w, h, r, rgb, edge) {
+            ctx.fillStyle = _lg(0, y, 0, y + h, [0, `rgba(${rgb},.34)`], [.5, `rgba(${rgb},.12)`], [1, `rgba(${rgb},.28)`]);
+            _rr(x, y, w, h, r); ctx.fill(); ctx.strokeStyle = edge; ctx.lineWidth = 1.6; ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x + r + 2, y + 2.5); ctx.lineTo(x + w - r - 2, y + 2.5); ctx.stroke();
+        }
+        function _star(x, y, r) {
+            ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.beginPath();
+            ctx.moveTo(x, y - r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.quadraticCurveTo(x, y, x, y + r);
+            ctx.quadraticCurveTo(x, y, x - r, y); ctx.quadraticCurveTo(x, y, x, y - r); ctx.fill();
+        }
+        function _rough(len, D, seed) {
+            const k = seed + '_' + len + '_' + D; if (_pc[k]) return _pc[k];
+            const r = _rnd(seed), L = len / 2, b = new Path2D(), t = new Path2D(); b.moveTo(-L, 0); t.moveTo(-L, 0);
+            for (let x = -L; x <= L; x += 3) { const y = (r() - .5) * 2.6; b.lineTo(x, y); t.lineTo(x, y); }
+            b.lineTo(L, D); b.lineTo(-L, D); b.closePath(); return (_pc[k] = { b, t });
+        }
+        function _roughBase(len, D, seed, fill, edge) {
+            const { b, t } = _rough(len, D, seed); _sh(1); ctx.fillStyle = fill; ctx.fill(b); _sh(0);
+            ctx.save(); ctx.clip(b); return () => { ctx.restore(); ctx.strokeStyle = edge; ctx.lineWidth = 1.2; ctx.stroke(b); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.4; ctx.stroke(t); };
+        }
+
+        function drawSelectedObject2D() {
+            const o = state.object, len = o.length, id = state.selectedObjectId, T = performance.now() / 1000;
+            const a = degToRad(o.angle), L = len / 2, th = o.thickness, h = th / 2;
+            ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(a);
+            if (-(state.laser.x - o.x) * Math.sin(a) + (state.laser.y - o.y) * Math.cos(a) > 0) ctx.scale(1, -1);
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+            const P = {
+                // ---------- 透明 ----------
+                trans_box() {
+                    _glass(-L, -h, len, th, 5, '56,189,248', '#38bdf8');
+                    ctx.strokeStyle = 'rgba(125,211,252,.45)'; ctx.lineWidth = 1; _rr(-L + 5, -h + 5, len - 10, th - 10, 3); ctx.stroke();
+                    ctx.save(); _rr(-L + 3, -h + 3, len - 6, th - 6, 4); ctx.clip();
+                    [[-.3, -4, 34], [.05, 6, 40], [.32, -6, 32], [-.08, -8, 26]].forEach(([fx, fy, r], i) => {
+                        const x = fx * len + Math.sin(T * .6 + i * 2) * 8, y = fy + Math.cos(T * .5 + i) * 4, g = ctx.createRadialGradient(x, y, 2, x, y, r);
+                        g.addColorStop(0, 'rgba(241,245,249,.6)'); g.addColorStop(1, 'rgba(241,245,249,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+                    }); ctx.restore();
+                    _glare(-L, -h, len, th, T); _star(-L + 9, -h + 9, 5); _star(L - 9, h - 9, 4);
+                },
+                trans_window() {
+                    ctx.beginPath(); ctx.roundRect(-L - 5, -h - 2, len + 10, th + 4, 4); ctx.rect(-L + 4, -h + 6, len - 8, th - 12);
+                    ctx.fillStyle = _lg(0, -h, 0, h, [0, '#b45309'], [.5, '#78350f'], [1, '#451a03']); ctx.fill('evenodd');
+                    ctx.strokeStyle = 'rgba(254,215,170,.35)'; ctx.lineWidth = 1; ctx.stroke();
+                    ctx.fillStyle = _lg(0, -h, 0, h, [0, 'rgba(186,230,253,.38)'], [1, 'rgba(125,211,252,.12)']); ctx.fillRect(-L + 4, -h + 6, len - 8, th - 12);
+                    ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 1; ctx.strokeRect(-L + 4, -h + 6, len - 8, th - 12); ctx.strokeRect(-L + 8, -h + 10, len - 16, th - 20);
+                    _glare(-L + 4, -h + 6, len - 8, th - 12, T);
+                    ctx.fillStyle = _lg(0, -5, 0, 5, [0, '#f1f5f9'], [1, '#64748b']); _rr(L - 1, -6, 9, 12, 2); ctx.fill();
+                },
+                trans_acrylic() {
+                    _glass(-L, -h + 6, len, th - 12, 3, '34,211,238', '#22d3ee');
+                    ctx.strokeStyle = 'rgba(165,243,252,.55)'; ctx.lineWidth = 1; _rr(-L + 4, -h + 10, len - 8, th - 20, 2); ctx.stroke();
+                    ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 10; ctx.strokeStyle = 'rgba(34,211,238,.6)'; ctx.beginPath(); ctx.moveTo(-L, h - 6); ctx.lineTo(L, h - 6); ctx.stroke(); ctx.shadowBlur = 0;
+                    _glare(-L, -h + 6, len, th - 12, T); _star(-L + 10, -h + 9, 6); _star(L - 14, h - 10, 5); _star(L * .3, -h + 12, 3.5);
+                },
+                trans_bag() {
+                    const w = (x, s) => Math.sin(x * .09 + s) * 2.2;
+                    ctx.beginPath(); for (let x = -L + 14; x <= L - 14; x += 4) ctx.lineTo(x, -h + 6 + w(x, 0)); for (let x = L - 14; x >= -L + 14; x -= 4) ctx.lineTo(x, h - 6 + w(x, 2)); ctx.closePath();
+                    ctx.fillStyle = _lg(0, -h, 0, h, [0, 'rgba(224,242,254,.34)'], [1, 'rgba(186,230,253,.12)']); ctx.fill();
+                    ctx.strokeStyle = 'rgba(224,242,254,.9)'; ctx.lineWidth = 1.4; ctx.stroke();
+                    ctx.lineWidth = 2.4; ctx.beginPath(); ctx.ellipse(-L + 14, 0, 11, h - 11, 0, Math.PI / 2, Math.PI * 1.5); ctx.stroke();
+                    ctx.beginPath(); ctx.ellipse(L - 14, 0, 11, h - 11, 0, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+                    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.2; ctx.beginPath();
+                    [[-.32, 1], [-.05, -1], [.22, 1]].forEach(([f, s]) => { ctx.moveTo(f * len, -h * .55 * s); ctx.quadraticCurveTo(f * len + 12, 0, f * len + 4, h * .55 * s); }); ctx.stroke();
+                    ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(224,242,254,.6)'; ctx.beginPath(); ctx.moveTo(-L + 16, h - 11); ctx.lineTo(L - 16, h - 11); ctx.stroke(); ctx.setLineDash([]);
+                },
+                trans_bottle() {
+                    const bh = h - 4; ctx.beginPath(); ctx.moveTo(-L + 26, -6); ctx.lineTo(-L + 46, -bh); ctx.lineTo(L - 8, -bh); ctx.quadraticCurveTo(L, -bh, L, -bh + 8);
+                    ctx.lineTo(L, bh - 8); ctx.quadraticCurveTo(L, bh, L - 8, bh); ctx.lineTo(-L + 46, bh); ctx.lineTo(-L + 26, 6); ctx.closePath();
+                    ctx.fillStyle = _lg(0, -bh, 0, bh, [0, 'rgba(125,211,252,.4)'], [.5, 'rgba(14,165,233,.22)'], [1, 'rgba(56,189,248,.42)']); ctx.fill();
+                    ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 1.5; ctx.stroke();
+                    ctx.save(); ctx.clip(); ctx.fillStyle = 'rgba(255,255,255,.7)';
+                    [[-.1, 6], [.2, -9], [.35, 8], [.05, -3]].forEach(([f, y], i) => { ctx.beginPath(); ctx.arc(f * len, y - ((T * 6 + i * 9) % 10), 1.6 + i % 2, 0, 7); ctx.fill(); });
+                    ctx.fillStyle = 'rgba(2,132,199,.5)'; ctx.fillRect(-L + 70, -bh, 44, th - 8); ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(-L + 70, -3, 44, 6);
+                    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; for (let x = L - 40; x < L - 8; x += 7) { ctx.beginPath(); ctx.moveTo(x, -bh); ctx.lineTo(x, bh); ctx.stroke(); }
+                    ctx.restore();
+                    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-L + 50, -bh + 4); ctx.lineTo(L - 12, -bh + 4); ctx.stroke();
+                    ctx.fillStyle = _lg(0, -8, 0, 8, [0, '#38bdf8'], [1, '#075985']); _rr(-L, -8, 30, 16, 3); ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1; for (let x = -L + 5; x < -L + 28; x += 4) { ctx.beginPath(); ctx.moveTo(x, -7); ctx.lineTo(x, 7); ctx.stroke(); }
+                },
+                // ---------- 光滑 ----------
+                smooth_mirror() {
+                    const D = 26; _sh(1); ctx.fillStyle = _lg(0, 0, 0, D, [0, '#475569'], [1, '#0f172a']); _rr(-L, 0, len, D, 3); ctx.fill(); _sh(0);
+                    ctx.fillStyle = 'rgba(148,163,184,.5)'; for (let x = -L + 24; x < L - 20; x += 44) { ctx.beginPath(); ctx.arc(x, D - 7, 2, 0, 7); ctx.fill(); }
+                    ctx.save(); ctx.beginPath(); ctx.rect(-L + 7, 11, len - 14, D - 12); ctx.clip(); ctx.strokeStyle = 'rgba(148,163,184,.6)'; ctx.lineWidth = 1.2; for (let x = -L; x < L + D; x += 7) { ctx.beginPath(); ctx.moveTo(x, 11); ctx.lineTo(x - 14, D); ctx.stroke(); } ctx.restore();
+                    ctx.fillStyle = '#64748b'; [-.5, .5].forEach(f => { _rr(f * L - 7, D, 14, 7, 2); ctx.fill(); });
+                    ctx.fillStyle = _scene(-L, L); ctx.fillRect(-L + 7, 0, len - 14, 9); ctx.fillStyle = '#e2e8f0'; ctx.fillRect(-L + 7, 9, len - 14, 2);
+                    ctx.fillStyle = 'rgba(125,211,252,.22)'; ctx.fillRect(-L + 7, 0, len - 14, 3);
+                    _glare(-L + 7, 0, len - 14, 9, T);
+                    [-1, 1].forEach(s => { ctx.fillStyle = _lg(0, 0, 0, D, [0, '#f8fafc'], [.5, '#94a3b8'], [1, '#475569']); _rr(s < 0 ? -L : L - 8, -1, 8, D + 1, 3); ctx.fill(); });
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-L + 7, 0); ctx.lineTo(L - 7, 0); ctx.stroke();
+                },
+                smooth_rearview() {
+                    const D = 36; ctx.beginPath(); ctx.moveTo(-L - 2, 0); ctx.lineTo(L + 2, 0); ctx.bezierCurveTo(L + 2, D * .75, L * .55, D, 0, D); ctx.bezierCurveTo(-L * .55, D, -L - 2, D * .75, -L - 2, 0); ctx.closePath();
+                    _sh(1); ctx.fillStyle = _lg(0, 0, 0, D, [0, '#475569'], [.35, '#1e293b'], [1, '#020617']); ctx.fill(); _sh(0);
+                    ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-L * .85, D * .55); ctx.bezierCurveTo(-L * .6, D * .85, -L * .2, D * .9, L * .1, D * .88); ctx.stroke();
+                    ctx.fillStyle = '#f59e0b'; ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 8; _rr(-L + 14, 12, 28, 5, 2); ctx.fill(); ctx.shadowBlur = 0;
+                    ctx.fillStyle = _lg(0, 0, 0, 10, [0, '#64748b'], [1, '#1e293b']); _rr(-8, D - 2, 16, 10, 2); ctx.fill();
+                    ctx.fillStyle = _scene(-L, L); _rr(-L + 3, 0, len - 6, 9, 2); ctx.fill();
+                    _glare(-L + 3, 0, len - 6, 6, T); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-L + 3, 0); ctx.lineTo(L - 3, 0); ctx.stroke();
+                },
+                smooth_cutlery() {
+                    const D = 34; ctx.beginPath(); ctx.moveTo(-L, 0); ctx.lineTo(L - 6, 0); ctx.quadraticCurveTo(L, 0, L, 5); ctx.quadraticCurveTo(L, 9, L - 6, 9); ctx.lineTo(-L * .12, 9);
+                    ctx.bezierCurveTo(-L * .3, 9, -L * .3, D, -L * .6, D); ctx.bezierCurveTo(-L * .95, D, -L, D * .4, -L, 0); ctx.closePath();
+                    _sh(1); ctx.fillStyle = _lg(-L, 0, L, 0, [0, '#64748b'], [.2, '#ffffff'], [.45, '#94a3b8'], [.7, '#f8fafc'], [1, '#64748b']); ctx.fill(); _sh(0);
+                    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1; ctx.stroke();
+                    ctx.strokeStyle = 'rgba(71,85,105,.5)'; ctx.beginPath(); ctx.moveTo(L * .1, 4.5); ctx.lineTo(L - 12, 4.5); ctx.stroke();
+                    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(-L * .55, D * .55, 14, 5, -.2, 0, 7); ctx.fill();
+                    _glare(-L, 0, len, 9, T); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-L, 0); ctx.lineTo(L - 6, 0); ctx.stroke();
+                },
+                smooth_water() {
+                    const D = 32; ctx.fillStyle = _lg(0, 0, 0, D, [0, 'rgba(125,211,252,.85)'], [.4, '#0284c7'], [1, '#0c4a6e']); ctx.fillRect(-L + 3, 0, len - 6, D);
+                    ctx.save(); ctx.beginPath(); ctx.rect(-L + 3, 0, len - 6, D); ctx.clip(); ctx.strokeStyle = 'rgba(186,230,253,.3)'; ctx.lineWidth = 1.2;
+                    for (let k = 0; k < 3; k++) { ctx.beginPath(); for (let x = -L; x <= L; x += 5) ctx.lineTo(x, 8 + k * 7 + Math.sin(x * .08 + T * 1.2 + k * 2) * 2); ctx.stroke(); }
+                    ctx.fillStyle = 'rgba(255,255,255,.65)'; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(-L * .6 + i * len * .27, D - 3 - ((T * 8 + i * 7) % (D - 4)), 1.5 + i % 2, 0, 7); ctx.fill(); }
+                    ctx.restore();
+                    ctx.strokeStyle = 'rgba(186,230,253,.75)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-L, -6); ctx.lineTo(-L, D + 2); ctx.lineTo(L, D + 2); ctx.lineTo(L, -6); ctx.stroke();
+                    ctx.fillStyle = 'rgba(255,255,255,.9)'; for (let i = 0; i < 3; i++) { const x = ((T * 25 + i * len / 3) % len) - L; ctx.fillRect(x, -1, 14, 1.5); }
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-L + 3, 0); ctx.lineTo(L - 3, 0); ctx.stroke();
+                },
+                smooth_road_mirror() {
+                    const D = 44; ctx.fillStyle = _lg(-5, 0, 5, 0, [0, '#64748b'], [.5, '#e2e8f0'], [1, '#475569']); ctx.fillRect(-5, 12, 10, D - 12);
+                    ctx.fillStyle = '#334155'; _rr(-12, D - 8, 24, 6, 2); ctx.fill();
+                    _sh(1); ctx.fillStyle = _lg(0, 0, 0, 18, [0, '#fb923c'], [1, '#c2410c']); _rr(-L, 0, len, 18, [0, 0, 10, 10]); ctx.fill(); _sh(0);
+                    ctx.save(); _rr(-L, 8, len, 10, [0, 0, 10, 10]); ctx.clip(); ctx.fillStyle = 'rgba(255,255,255,.88)';
+                    for (let x = -L - 10; x < L; x += 22) { ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x + 10, 18); ctx.lineTo(x + 20, 8); ctx.lineTo(x + 10, 8); ctx.fill(); } ctx.restore();
+                    ctx.fillStyle = _lg(-L, 0, L, 0, [0, '#334155'], [.25, '#cbd5e1'], [.5, '#ffffff'], [.75, '#cbd5e1'], [1, '#334155']); _rr(-L + 8, 0, len - 16, 8, [0, 0, 4, 4]); ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(-L * .3, 3, 22, 1.8, 0, 0, 7); ctx.fill();
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-L + 8, 0); ctx.lineTo(L - 8, 0); ctx.stroke();
+                },
+                // ---------- 粗糙 ----------
+                rough_wood() {
+                    const D = 34, end = _roughBase(len, D, 11, _lg(0, 0, 0, D, [0, '#b45309'], [.5, '#92400e'], [1, '#78350f']), '#451a03'), r = _rnd(5);
+                    ctx.lineWidth = 1; for (let k = 0; k < 8; k++) { ctx.strokeStyle = `rgba(69,26,3,${.25 + r() * .25})`; ctx.beginPath(); for (let x = -L; x <= L; x += 8) ctx.lineTo(x, 4 + k * 4 + Math.sin(x * .05 + k * 1.7) * 1.8); ctx.stroke(); }
+                    [3, 2, 1].forEach(i => { ctx.strokeStyle = 'rgba(40,16,2,.7)'; ctx.fillStyle = i == 1 ? '#3b1a05' : 'rgba(0,0,0,0)'; ctx.beginPath(); ctx.ellipse(L * .38, 17, 4 + i * 4, 2.5 + i * 2.2, 0, 0, 7); ctx.fill(); ctx.stroke(); });
+                    ctx.fillStyle = _lg(0, 0, 0, 10, [0, 'rgba(254,215,170,.3)'], [1, 'rgba(254,215,170,0)']); ctx.fillRect(-L, 0, len, 10); end();
+                },
+                rough_paper() {
+                    const r = _rnd(3), D = 30; _sh(1);
+                    for (let i = 3; i >= 0; i--) { ctx.fillStyle = i ? '#e2e8f0' : '#fafaf9'; ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; _rr(-L + i * 2, i * 7.5, len - i * 2, 7.5 + (i == 3 ? D - 30 : 0) + 2, 1.5); ctx.fill(); ctx.stroke(); _sh(0); }
+                    ctx.fillStyle = 'rgba(148,163,184,.5)'; for (let i = 0; i < 70; i++) ctx.fillRect(-L + r() * len, r() * D, 1.2, 1.2);
+                    ctx.fillStyle = '#e7e5e4'; ctx.strokeStyle = '#a8a29e'; ctx.beginPath(); ctx.moveTo(L - 22, .5); ctx.lineTo(L, .5); ctx.lineTo(L, 15); ctx.closePath(); ctx.fill(); ctx.stroke();
+                    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 1.4; ctx.beginPath(); for (let x = -L; x < L - 22; x += 3) ctx.lineTo(x, (r() - .5) * 1.6); ctx.stroke();
+                },
+                rough_cardboard() {
+                    const D = 30, end = _roughBase(len, D, 21, '#c08a4b', '#6b4423');
+                    ctx.fillStyle = '#d9a766'; ctx.fillRect(-L, 0, len, 5); ctx.fillStyle = '#b07a3e'; ctx.fillRect(-L, D - 5, len, 5);
+                    ctx.beginPath(); for (let x = -L; x <= L; x += 2) ctx.lineTo(x, D / 2 + Math.sin(x * .5) * (D / 2 - 6)); ctx.strokeStyle = '#7c4a1d'; ctx.lineWidth = 2.2; ctx.stroke();
+                    ctx.strokeStyle = 'rgba(254,243,199,.4)'; ctx.lineWidth = 1; ctx.stroke();
+                    ctx.fillStyle = 'rgba(251,191,36,.9)'; ctx.fillRect(L * .3, -1, 36, 6); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(L * .3, 0, 36, 1.5); end();
+                },
+                rough_frosted() {
+                    const D = 18, r = _rnd(9), end = _roughBase(len, D, 31, _lg(0, 0, 0, D, [0, 'rgba(241,245,249,.92)'], [1, 'rgba(148,163,184,.55)']), '#cbd5e1');
+                    ctx.fillStyle = 'rgba(94,234,212,.28)'; ctx.fillRect(-L, 0, 14, D); ctx.fillRect(L - 14, 0, 14, D);
+                    for (let i = 0; i < 160; i++) { ctx.fillStyle = `rgba(255,255,255,${.4 + r() * .5})`; ctx.fillRect(-L + r() * len, r() * D * .75, 1.5, 1.5); }
+                    end(); ctx.fillStyle = _lg(0, 0, 0, D, [0, '#e2e8f0'], [1, '#64748b']); [-1, 1].forEach(s => { _rr(s < 0 ? -L - 3 : L - 8, -3, 11, D + 6, 2); ctx.fill(); });
+                },
+                rough_concrete() {
+                    const D = 38, r = _rnd(17), end = _roughBase(len, D, 41, _lg(0, 0, 0, D, [0, '#64748b'], [.4, '#475569'], [1, '#1e293b']), '#0f172a');
+                    ctx.fillStyle = 'rgba(15,23,42,.45)'; ctx.fillRect(-L, 15, len, D);
+                    for (let i = 0; i < 70; i++) { const top = i < 50, y = top ? 2 + r() * 11 : 17 + r() * 19, s = top ? .8 + r() * 1.8 : 2 + r() * 3; ctx.fillStyle = `hsl(215,${8 + r() * 12}%,${35 + r() * 35}%)`; ctx.beginPath(); ctx.ellipse(-L + r() * len, y, s * 1.3, s, r() * 3, 0, 7); ctx.fill(); }
+                    ctx.fillStyle = '#0f172a'; ctx.fillRect(-L * .25, 0, 3, 15); ctx.strokeStyle = 'rgba(15,23,42,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L * .45, 0); ctx.lineTo(L * .45 + 4, 5); ctx.lineTo(L * .45 - 2, 9); ctx.lineTo(L * .45 + 3, 14); ctx.stroke(); end();
+                }
+            };
+            try { if (P[id]) P[id](); } catch (err) { console.error(id, err); ctx.shadowBlur = 0; }
+            ctx.restore();
+        }
+
+        // Render Laser Emitter Gun (Right side)
+        function drawLaserEmitter() {
+            ctx.save();
+            ctx.translate(state.laser.x, state.laser.y);
+            ctx.rotate(degToRad(state.laser.angle));
+
+            // Metallic gun body
+            const bodyGrad = ctx.createLinearGradient(0, -12, 0, 12);
+            bodyGrad.addColorStop(0, '#64748b');
+            bodyGrad.addColorStop(0.4, '#f8fafc');
+            bodyGrad.addColorStop(0.7, '#334155');
+            bodyGrad.addColorStop(1, '#0f172a');
+
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.roundRect(-30, -12, 50, 24, 4);
+            ctx.fill();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Front nozzle tip
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(20, -8, 10, 16);
+            ctx.fillStyle = state.laser.color;
+            ctx.fillRect(30, -5, 4, 10);
+
+            // Back LED indicator
+            ctx.fillStyle = state.laser.power ? state.laser.color : '#475569';
+            ctx.beginPath();
+            ctx.arc(-20, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // Render Laser Beams & Surface Impact Phenomena
+        function drawLaserBeams(hit, rayEndPoint, laserDir, normalVec, incidentAngle) {
+            const startP = { x: state.laser.x, y: state.laser.y };
+            const hitP = hit ? { x: hit.x, y: hit.y } : rayEndPoint;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+
+            function drawGlowRay(pA, pB, colorHex, opacity = 1) {
+                // Outer Beam Glow
+                ctx.beginPath();
+                ctx.moveTo(pA.x, pA.y);
+                ctx.lineTo(pB.x, pB.y);
+                ctx.strokeStyle = colorHex;
+                ctx.lineWidth = 8;
+                ctx.globalAlpha = 0.35 * opacity;
+                ctx.stroke();
+
+                // Core Ray
+                ctx.beginPath();
+                ctx.moveTo(pA.x, pA.y);
+                ctx.lineTo(pB.x, pB.y);
+                ctx.strokeStyle = colorHex;
+                ctx.lineWidth = 3.5;
+                ctx.globalAlpha = 0.75 * opacity;
+                ctx.stroke();
+
+                // White Center Line
+                ctx.beginPath();
+                ctx.moveTo(pA.x, pA.y);
+                ctx.lineTo(pB.x, pB.y);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = 0.95 * opacity;
+                ctx.stroke();
+            }
+
+            // 1. Incident Laser Ray (Right to Left)
+            drawGlowRay(startP, hitP, state.laser.color);
+
+            ctx.restore();
+
+            if (hit) {
+                // Normal Line (法線)
+                if (state.tools.showNormal) {
+                    ctx.save();
+                    const nLength = 110;
+                    const nP1 = { x: hit.x + normalVec.x * nLength, y: hit.y + normalVec.y * nLength };
+                    const nP2 = { x: hit.x - normalVec.x * nLength, y: hit.y - normalVec.y * nLength };
+
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 4]);
+                    ctx.moveTo(nP1.x, nP1.y);
+                    ctx.lineTo(nP2.x, nP2.y);
+                    ctx.strokeStyle = '#c084fc';
+                    ctx.lineWidth = 1.8;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#e9d5ff';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillText('法線 (Normal)', nP1.x + 6, nP1.y + 4);
+                    ctx.restore();
+                }
+
+                // OPTICAL PHENOMENA BASED ON CATEGORY
+                if (state.category === 'transparent') {
+                    // TRANSPARENT: Ray continues straight through object
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'screen';
+                    const passEnd = getRayBoundaryPoint(hit, laserDir, 2500);
+                    drawGlowRay(hit, passEnd, state.laser.color, 0.85);
+                    ctx.restore();
+
+                } else if (state.category === 'smooth') {
+                    // SPECULAR REFLECTION: Law of Reflection ray (θ1 = θ2)
+                    const dot = (laserDir.x * normalVec.x) + (laserDir.y * normalVec.y);
+                    const reflectDir = {
+                        x: laserDir.x - 2 * dot * normalVec.x,
+                        y: laserDir.y - 2 * dot * normalVec.y
+                    };
+                    const reflectEnd = getRayBoundaryPoint(hit, reflectDir, 2500);
+
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'screen';
+                    drawGlowRay(hit, reflectEnd, state.laser.color, 0.95);
+                    ctx.restore();
+
+                    if (state.tools.showAngles) {
+                        drawAngleAnnotations(hit, laserDir, reflectDir, normalVec, incidentAngle);
+                    }
+
+                } else if (state.category === 'rough') {
+                    // DIFFUSE SCATTERING (散射): 
+                    // RULE: NO REFLECTION RAYS IN THE AIR (Invisible in clear air).
+                    // Render high-intensity impact hotspot with diffuse surface glow halo.
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'screen';
+
+                    const spotGrad = ctx.createRadialGradient(hit.x, hit.y, 0, hit.x, hit.y, 18);
+                    spotGrad.addColorStop(0, '#ffffff');
+                    spotGrad.addColorStop(0.35, state.laser.color);
+                    spotGrad.addColorStop(1, 'transparent');
+
+                    ctx.fillStyle = spotGrad;
+                    ctx.beginPath();
+                    ctx.arc(hit.x, hit.y, 18, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Hotspot Center Point
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(hit.x, hit.y, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+        }
+
+        // Draw Angle Arcs & Degree Labels
+        function drawAngleAnnotations(hit, laserDir, reflectDir, normalVec, angleDeg) {
+            ctx.save();
+            const radius = 45;
+
+            const incidentRad = Math.atan2(-laserDir.y, -laserDir.x);
+            const normalRad = Math.atan2(normalVec.y, normalVec.x);
+            const reflectRad = Math.atan2(reflectDir.y, reflectDir.x);
+
+            // Incident Angle Arc (Blue)
+            ctx.beginPath();
+            ctx.arc(hit.x, hit.y, radius, normalRad, incidentRad, incidentRad < normalRad);
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const midIncRad = (normalRad + incidentRad) / 2;
+            const textIncPos = {
+                x: hit.x + Math.cos(midIncRad) * (radius + 18),
+                y: hit.y + Math.sin(midIncRad) * (radius + 18)
+            };
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`θ₁=${angleDeg.toFixed(1)}°`, textIncPos.x, textIncPos.y);
+
+            // Reflection Angle Arc (Green)
+            ctx.beginPath();
+            ctx.arc(hit.x, hit.y, radius, normalRad, reflectRad, reflectRad < normalRad);
+            ctx.strokeStyle = '#4ade80';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const midRefRad = (normalRad + reflectRad) / 2;
+            const textRefPos = {
+                x: hit.x + Math.cos(midRefRad) * (radius + 18),
+                y: hit.y + Math.sin(midRefRad) * (radius + 18)
+            };
+            ctx.fillStyle = '#86efac';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`θ₂=${angleDeg.toFixed(1)}°`, textRefPos.x, textRefPos.y);
+
+            ctx.restore();
+        }
+
+        // Draw Interactive Drag Handles
+        function drawInteractiveHandles() {
+            ctx.save();
+
+            // Laser Handles (Right side)
+            if (!state.laser.locked) {
+                ctx.beginPath();
+                ctx.arc(state.laser.x, state.laser.y, state.laser.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                const radL = degToRad(state.laser.angle);
+                const rotHandleX = state.laser.x + Math.cos(radL) * 45;
+                const rotHandleY = state.laser.y + Math.sin(radL) * 45;
+
+                ctx.beginPath();
+                ctx.moveTo(state.laser.x, state.laser.y);
+                ctx.lineTo(rotHandleX, rotHandleY);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(rotHandleX, rotHandleY, 7, 0, Math.PI * 2);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            // Object Handles (Left/Center side)
+            if (!state.object.locked) {
+                ctx.beginPath();
+                ctx.arc(state.object.x, state.object.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                const radO = degToRad(state.object.angle - 90);
+                const rotObjX = state.object.x + Math.cos(radO) * (state.object.length / 2 + 22);
+                const rotObjY = state.object.y + Math.sin(radO) * (state.object.length / 2 + 22);
+
+                ctx.beginPath();
+                ctx.moveTo(state.object.x, state.object.y);
+                ctx.lineTo(rotObjX, rotObjY);
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(rotObjX, rotObjY, 7, 0, Math.PI * 2);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        // Pointer Events (Mouse + iPad Safari Touch Screen)
+        function getPointerPos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+
+        function onPointerDown(evt) {
+            const pos = getPointerPos(evt);
+
+            const radL = degToRad(state.laser.angle);
+            const laserRotHandle = {
+                x: state.laser.x + Math.cos(radL) * 45,
+                y: state.laser.y + Math.sin(radL) * 45
+            };
+
+            const radO = degToRad(state.object.angle - 90);
+            const objRotHandle = {
+                x: state.object.x + Math.cos(radO) * (state.object.length / 2 + 22),
+                y: state.object.y + Math.sin(radO) * (state.object.length / 2 + 22)
+            };
+
+            // Laser Rotation Handle
+            if (!state.laser.locked && Math.hypot(pos.x - laserRotHandle.x, pos.y - laserRotHandle.y) < 22) {
+                state.drag.active = true;
+                state.drag.target = 'laserAngle';
+                canvas.setPointerCapture(evt.pointerId);
+                return;
+            }
+
+            // Laser Position Drag
+            if (!state.laser.locked && Math.hypot(pos.x - state.laser.x, pos.y - state.laser.y) < 32) {
+                state.drag.active = true;
+                state.drag.target = 'laserPos';
+                state.drag.offsetX = pos.x - state.laser.x;
+                state.drag.offsetY = pos.y - state.laser.y;
+                canvas.setPointerCapture(evt.pointerId);
+                return;
+            }
+
+            // Object Rotation Handle
+            if (!state.object.locked && Math.hypot(pos.x - objRotHandle.x, pos.y - objRotHandle.y) < 22) {
+                state.drag.active = true;
+                state.drag.target = 'objAngle';
+                canvas.setPointerCapture(evt.pointerId);
+                return;
+            }
+
+            // Object Position Drag
+            if (!state.object.locked && Math.hypot(pos.x - state.object.x, pos.y - state.object.y) < 45) {
+                state.drag.active = true;
+                state.drag.target = 'objPos';
+                state.drag.offsetX = pos.x - state.object.x;
+                state.drag.offsetY = pos.y - state.object.y;
+                canvas.setPointerCapture(evt.pointerId);
+                return;
+            }
+        }
+
+        function onPointerMove(evt) {
+            if (!state.drag.active) return;
+            const pos = getPointerPos(evt);
+
+            if (state.drag.target === 'laserPos') {
+                state.laser.x = Math.max(30, Math.min(state.viewportWidth - 30, pos.x - state.drag.offsetX));
+                state.laser.y = Math.max(30, Math.min(state.viewportHeight - 30, pos.y - state.drag.offsetY));
+            } 
+            else if (state.drag.target === 'laserAngle') {
+                const dx = pos.x - state.laser.x;
+                const dy = pos.y - state.laser.y;
+                let angle = radToDeg(Math.atan2(dy, dx));
+                state.laser.angle = angle;
+                document.getElementById('sliderLaserAngle').value = Math.round(angle);
+                document.getElementById('valLaserAngle').innerText = `${Math.round(angle)}°`;
+            } 
+            else if (state.drag.target === 'objPos') {
+                state.object.x = Math.max(30, Math.min(state.viewportWidth - 30, pos.x - state.drag.offsetX));
+                state.object.y = Math.max(30, Math.min(state.viewportHeight - 30, pos.y - state.drag.offsetY));
+            } 
+            else if (state.drag.target === 'objAngle') {
+                const dx = pos.x - state.object.x;
+                const dy = pos.y - state.object.y;
+                let angle = radToDeg(Math.atan2(dy, dx)) + 90;
+                while (angle < 0) angle += 180;
+                while (angle > 180) angle -= 180;
+
+                state.object.angle = angle;
+                document.getElementById('sliderObjAngle').value = Math.round(angle);
+                document.getElementById('valObjAngle').innerText = `${Math.round(angle)}°`;
+            }
+        }
+
+        function onPointerUp(evt) {
+            if (state.drag.active) {
+                state.drag.active = false;
+                state.drag.target = null;
+                try {
+                    canvas.releasePointerCapture(evt.pointerId);
+                } catch(e){}
+            }
+        }
+
+        // App Initialization
+        window.onload = function () {
+            // Register pointer events for desktop mouse + iPad touch
+            canvas.addEventListener('pointerdown', onPointerDown);
+            canvas.addEventListener('pointermove', onPointerMove);
+            canvas.addEventListener('pointerup', onPointerUp);
+            canvas.addEventListener('pointercancel', onPointerUp);
+
+            // Responsive Observer
+            const resizeObserver = new ResizeObserver(() => {
+                resizeCanvas();
+            });
+            if (canvas.parentElement) {
+                resizeObserver.observe(canvas.parentElement);
+            }
+            window.addEventListener('resize', resizeCanvas);
+
+            resizeCanvas();
+            renderObjectButtons();
+            resetSimulation();
+
+            // Start Animation Loop
+            render();
+        };
+    </script>
+</body>
+</html>
