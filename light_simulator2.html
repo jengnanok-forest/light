@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>視覺與光線反射互動示範</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            color: #38bdf8;
+        }
+
+        p.subtitle {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #1e293b;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #334155;
+            padding: 16px 24px;
+            border-radius: 12px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #64748b;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #f59e0b;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-grow: 1;
+            max-width: 300px;
+        }
+
+        .range-container input[type=range] {
+            flex-grow: 1;
+            accent-color: #f59e0b;
+            cursor: pointer;
+        }
+
+        /* 繪圖舞台 */
+        .stage {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background-color: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        .stage.dark {
+            background-color: #020617;
+        }
+
+        /* SVG 圖層 */
+        svg.scene {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* 光線動畫 */
+        .light-ray {
+            stroke: #ec4899;
+            stroke-width: 3.5;
+            stroke-dasharray: 8 6;
+            animation: dash 1s linear infinite;
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -14;
+            }
+        }
+
+        /* 物體漸變與切換 */
+        .sun-on-group, .sun-off-body, .apple-group, .eye-group {
+            transition: opacity 0.3s ease;
+        }
+
+        /* 文字標籤 */
+        .label {
+            font-size: 20px;
+            font-weight: bold;
+            fill: #1e293b;
+            transition: fill 0.5s ease;
+        }
+
+        .dark .label {
+            fill: #f8fafc;
+        }
+
+        /* 眼睛看到的畫面模擬 */
+        .vision-box {
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .vision-preview {
+            width: 100px;
+            height: 100px;
+            background-color: #000;
+            border: 3px solid #38bdf8;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .vision-apple {
+            width: 60px;
+            height: 60px;
+            transition: opacity 0.3s ease;
+        }
+
+        .vision-text {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .highlight {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>視覺與光線反射原理</h1>
+        <p class="subtitle">切換陽光開關，觀察光線如何讓我們看見物體</p>
+    </header>
+
+    <div class="container">
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="switch-container">
+                <span>陽光開關：</span>
+                <label class="switch">
+                    <input type="checkbox" id="sunToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <span id="sunStatusText" style="color: #f59e0b;">開啟</span>
+            </div>
+
+            <div class="range-container">
+                <span>光線強度：</span>
+                <input type="range" id="brightnessRange" min="0" max="100" value="100">
+                <span id="brightnessValue">100%</span>
+            </div>
+        </div>
+
+        <!-- 互動場景舞台 -->
+        <div class="stage" id="stage">
+            <svg class="scene" viewBox="0 0 800 400">
+                <!-- 箭頭定義 -->
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#ec4899" />
+                    </marker>
+                </defs>
+
+                <!-- 1. 光線 (陽光到蘋果) -->
+                <g id="lightRaysFromSun">
+                    <line x1="450" y1="120" x2="620" y2="235" class="light-ray" marker-end="url(#arrow)" />
+                    <line x1="470" y1="100" x2="640" y2="215" class="light-ray" marker-end="url(#arrow)" />
+                    <line x1="490" y1="80" x2="660" y2="195" class="light-ray" marker-end="url(#arrow)" />
+                    <text x="540" y="110" class="label">光</text>
+                </g>
+
+                <!-- 2. 光線 (蘋果反射到眼睛) -->
+                <g id="lightRaysToEye">
+                    <line x1="610" y1="270" x2="160" y2="270" class="light-ray" marker-end="url(#arrow)" />
+                    <line x1="610" y1="290" x2="160" y2="290" class="light-ray" marker-end="url(#arrow)" />
+                    <line x1="610" y1="310" x2="160" y2="310" class="light-ray" marker-end="url(#arrow)" />
+                </g>
+
+                <!-- 3. 太陽 -->
+                <g class="sun-group" id="sun">
+                    <!-- 關閉陽光時顯示的深藍灰色圓形太陽 -->
+                    <circle id="sunOffBody" class="sun-off-body" cx="400" cy="90" r="45" fill="#3f4d63" opacity="0" />
+
+                    <!-- 開啟陽光時顯示的太陽與光芒 -->
+                    <g id="sunOnGroup" class="sun-on-group">
+                        <circle cx="400" cy="90" r="65" fill="#fde047" opacity="0.3" id="sunGlow" />
+                        <circle cx="400" cy="90" r="45" fill="#f59e0b" />
+                        <circle cx="400" cy="90" r="38" fill="#fbbf24" />
+                        <path d="M 400 30 L 400 15 M 400 150 L 400 135 M 340 90 L 325 90 M 475 90 L 460 90 
+                                 M 358 48 L 347 37 M 442 132 L 453 143 M 358 132 L 347 143 M 442 48 L 453 37" 
+                              stroke="#f59e0b" stroke-width="5" stroke-linecap="round" />
+                    </g>
+                </g>
+
+                <!-- 4. 蘋果 (無光線時 opacity 為 0 完全隱形) -->
+                <g class="apple-group" id="apple">
+                    <ellipse cx="660" cy="355" rx="60" ry="12" fill="#000" opacity="0.15" id="appleShadow" />
+                    <path d="M 660 230 Q 675 210 680 195" stroke="#78350f" stroke-width="5" fill="none" stroke-linecap="round" />
+                    <path d="M 660 215 Q 630 200 625 215 Q 640 230 660 215 Z" fill="#22c55e" />
+                    <path d="M 660 230 
+                             C 630 210, 580 250, 590 300 
+                             C 600 350, 640 355, 660 340 
+                             C 680 355, 720 350, 730 300 
+                             C 740 250, 690 210, 660 230 Z" 
+                          fill="#ef4444" />
+                    <path d="M 615 255 Q 605 285 620 315" stroke="#fca5a5" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6" />
+                    <text x="630" y="385" class="label">蘋果</text>
+                </g>
+
+                <!-- 5. 眼睛 -->
+                <g class="eye-group" id="eye">
+                    <path d="M 40 280 Q 90 220 150 280 Q 90 340 40 280 Z" fill="#ffedd5" stroke="#d97706" stroke-width="3" />
+                    <clipPath id="eyeClip">
+                        <path d="M 40 280 Q 90 220 150 280 Q 90 340 40 280 Z" />
+                    </clipPath>
+                    <g clip-path="url(#eyeClip)">
+                        <circle cx="100" cy="280" r="28" fill="#78350f" />
+                        <circle cx="100" cy="280" r="16" fill="#000" />
+                        <circle cx="108" cy="272" r="6" fill="#fff" />
+                    </g>
+                    <path d="M 60 242 L 52 230 M 85 233 L 82 218 M 115 238 L 118 223 M 140 252 L 148 240" 
+                          stroke="#000" stroke-width="3" stroke-linecap="round" />
+                    <text x="65" y="385" class="label">眼睛</text>
+                </g>
+            </svg>
+        </div>
+
+        <!-- 眼睛看到的畫面模擬與說明 -->
+        <div class="vision-box">
+            <div class="vision-preview">
+                <svg id="visionApple" class="vision-apple" viewBox="0 0 160 160">
+                    <path d="M 80 30 Q 95 10 100 -5" stroke="#78350f" stroke-width="5" fill="none" stroke-linecap="round" />
+                    <path d="M 80 15 Q 50 0 45 15 Q 60 30 80 15 Z" fill="#22c55e" />
+                    <path d="M 80 30 C 50 10, 0 50, 10 100 C 20 150, 60 155, 80 140 C 100 155, 140 150, 150 100 C 160 50, 110 10, 80 30 Z" fill="#ef4444" />
+                </svg>
+                <span id="darknessText" style="color: #64748b; font-size: 0.85rem; display: none; text-align: center;">一片漆黑</span>
+            </div>
+            <div class="vision-text">
+                <p id="explanationText">
+                    當陽光照到蘋果時，蘋果會把光線<span class="highlight">反射</span>進入我們的眼睛，所以眼睛能夠清晰看到紅色的蘋果。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sunToggle = document.getElementById('sunToggle');
+        const brightnessRange = document.getElementById('brightnessRange');
+        const brightnessValue = document.getElementById('brightnessValue');
+        const sunStatusText = document.getElementById('sunStatusText');
+        const stage = document.getElementById('stage');
+
+        const lightRaysFromSun = document.getElementById('lightRaysFromSun');
+        const lightRaysToEye = document.getElementById('lightRaysToEye');
+        const apple = document.getElementById('apple');
+        const sunOnGroup = document.getElementById('sunOnGroup');
+        const sunOffBody = document.getElementById('sunOffBody');
+        const visionApple = document.getElementById('visionApple');
+        const darknessText = document.getElementById('darknessText');
+        const explanationText = document.getElementById('explanationText');
+
+        function updateScene() {
+            let opacity = sunToggle.checked ? (brightnessRange.value / 100) : 0;
+            
+            brightnessValue.textContent = Math.round(opacity * 100) + '%';
+            
+            if (!sunToggle.checked) {
+                sunStatusText.textContent = '關閉';
+                sunStatusText.style.color = '#94a3b8';
+            } else {
+                sunStatusText.textContent = '開啟';
+                sunStatusText.style.color = '#f59e0b';
+            }
+
+            // 1. 光線透明度
+            lightRaysFromSun.style.opacity = opacity;
+            lightRaysToEye.style.opacity = opacity;
+
+            // 2. 太陽狀態：開啟時漸變亮太陽，關閉時顯示暗藍灰色圓形太陽
+            sunOnGroup.style.opacity = opacity;
+            sunOffBody.style.opacity = 1 - opacity;
+
+            // 3. 蘋果透明度（無光時 opacity 為 0 完全隱形）
+            apple.style.opacity = opacity;
+            visionApple.style.opacity = opacity;
+
+            // 4. 背景與說明文字
+            if (opacity === 0) {
+                stage.classList.add('dark');
+                darknessText.style.display = 'block';
+                explanationText.innerHTML = '沒有光線照射到蘋果上，也沒有光反射進眼睛，因此<span class="highlight" style="color:#ef4444;">完全看不到蘋果</span>。';
+            } else {
+                stage.classList.remove('dark');
+                darknessText.style.display = 'none';
+                explanationText.innerHTML = `當陽光照到蘋果時，蘋果會把光線<span class="highlight">反射</span>進入我們的眼睛，所以眼睛能夠看到蘋果。（目前光線強度：${Math.round(opacity * 100)}%）`;
+            }
+        }
+
+        sunToggle.addEventListener('change', () => {
+            if (sunToggle.checked && brightnessRange.value == 0) {
+                brightnessRange.value = 100;
+            }
+            updateScene();
+        });
+
+        brightnessRange.addEventListener('input', () => {
+            if (brightnessRange.value > 0) {
+                sunToggle.checked = true;
+            } else {
+                sunToggle.checked = false;
+            }
+            updateScene();
+        });
+
+        updateScene();
+    </script>
+</body>
+</html>

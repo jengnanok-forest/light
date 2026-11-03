@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>視覺與光的反射原理 - 互動探索實驗室</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Google Fonts: Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Noto Sans TC', 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Animated dash array for traveling light rays */
+    @keyframes rayDash {
+      from { stroke-dashoffset: 32; }
+      to { stroke-dashoffset: 0; }
+    }
+    .animated-ray {
+      stroke-dasharray: 12 8;
+      animation: rayDash 0.8s linear infinite;
+    }
+
+    /* Sun pulse animation */
+    @keyframes pulseSun {
+      0%, 100% { transform: scale(1); opacity: 0.95; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+    .sun-pulse {
+      transform-origin: 450px 130px;
+      animation: pulseSun 3s ease-in-out infinite;
+    }
+
+    /* Glow filter for active sun */
+    .sun-glow {
+      filter: drop-shadow(0px 0px 25px rgba(251, 191, 36, 0.85));
+    }
+
+    /* Eye pupil smooth transition */
+    #eye-pupil {
+      transition: r 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Hide Zhuyin ruby text when toggled off */
+    body.hide-zhuyin rt {
+      display: none !important;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+
+    /* Custom range slider styling */
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 22px;
+      width: 22px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: transform 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+  <!-- Main Container -->
+  <div class="w-full max-w-7xl mx-auto px-4 py-4 md:py-6 flex flex-col gap-6">
+    
+    <!-- Top Header & Navigation -->
+    <header class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-800/80 backdrop-blur border border-slate-700 p-4 rounded-2xl shadow-lg">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl shadow-inner">
+          <i class="fa-solid me-0 fa-sun animate-spin-slow"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-black tracking-wide text-white flex items-center gap-2">
+            <ruby>光<rt>ㄍㄨㄤ</rt></ruby><ruby>的<rt>ㄉㄜ˙</rt></ruby><ruby>反<rt>ㄈㄢˇ</rt></ruby><ruby>射<rt>ㄕㄜˋ</rt></ruby><ruby>與<rt>ㄩˇ</rt></ruby><ruby>視<rt>ㄕˋ</rt></ruby><ruby>覺<rt>ㄐㄩㄝˊ</rt></ruby><ruby>原<rt>ㄩㄢˊ</rt></ruby><ruby>理<rt>ㄌㄧˇ</rt></ruby>
+          </h1>
+          <p class="text-xs md:text-sm text-slate-400">探索「我們為什麼看得見物體？」的物理秘密</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Toggles Header -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-toggle-zhuyin" onclick="toggleZhuyin()" class="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs md:text-sm font-semibold flex items-center gap-2 transition border border-slate-600">
+          <i class="fa-solid fa-font"></i>
+          <span id="zhuyin-btn-text">隱藏注音</span>
+        </button>
+
+        <button id="btn-toggle-sound" onclick="toggleSound()" class="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs md:text-sm font-semibold flex items-center gap-2 transition border border-slate-600">
+          <i id="sound-icon" class="fa-solid fa-volume-high text-emerald-400"></i>
+          <span id="sound-btn-text">音效開啟</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Interactive Experiment Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left / Top Column: SVG Simulation Canvas (8 Cols) -->
+      <div class="lg:col-span-8 flex flex-col gap-4">
+        
+        <!-- Interactive Canvas Card -->
+        <div id="simulation-box" class="relative rounded-3xl border border-slate-700 shadow-2xl overflow-hidden transition-all duration-700 bg-slate-950 flex items-center justify-center min-h-[380px] sm:min-h-[480px]">
+          
+          <!-- Background Scene Glow -->
+          <div id="sky-gradient" class="absolute inset-0 bg-gradient-to-b from-sky-400/20 via-sky-200/5 to-slate-950 transition-opacity duration-700 opacity-100 pointer-events-none"></div>
+
+          <!-- SVG Visual Container -->
+          <svg id="scene-svg" viewBox="0 0 1000 560" class="w-full h-auto relative z-10 select-none">
+            
+            <defs>
+              <!-- Sun Gradient -->
+              <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="25%" stop-color="#fef08a" />
+                <stop offset="65%" stop-color="#f59e0b" />
+                <stop offset="100%" stop-color="#ea580c" />
+              </radialGradient>
+
+              <!-- Sun Aura Radial Glow -->
+              <radialGradient id="sunAura" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#fde047" stop-opacity="0.8" />
+                <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.3" />
+                <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+              </radialGradient>
+
+              <!-- Apple Gradient -->
+              <radialGradient id="appleGrad" cx="35%" cy="30%" r="65%">
+                <stop offset="0%" stop-color="#fca5a5" />
+                <stop offset="20%" stop-color="#ef4444" />
+                <stop offset="75%" stop-color="#dc2626" />
+                <stop offset="100%" stop-color="#7f1d1d" />
+              </radialGradient>
+
+              <!-- Dark Darkened Apple Gradient -->
+              <radialGradient id="appleDarkGrad" cx="35%" cy="30%" r="65%">
+                <stop offset="0%" stop-color="#334155" />
+                <stop offset="100%" stop-color="#020617" />
+              </radialGradient>
+
+              <!-- Eye Iris Gradient -->
+              <radialGradient id="irisGrad" cx="40%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#b45309" />
+                <stop offset="70%" stop-color="#78350f" />
+                <stop offset="100%" stop-color="#451a03" />
+              </radialGradient>
+
+              <!-- Arrow Marker for Light Rays -->
+              <marker id="arrowhead" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 Z" fill="#ec4899" />
+              </marker>
+
+              <!-- Shadow Filter -->
+              <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.4" />
+              </filter>
+            </defs>
+
+            <!-- Ground Shadow / Base -->
+            <ellipse cx="820" cy="485" rx="90" ry="16" fill="#000000" opacity="0.4" />
+            
+            <!-- SUN GROUP -->
+            <g id="group-sun" class="cursor-pointer sun-pulse" onclick="showHotspotInfo('sun')">
+              <!-- Outer Glow Aura -->
+              <circle id="sun-aura" cx="450" cy="130" r="100" fill="url(#sunAura)" class="transition-opacity duration-500 opacity-100" />
+              
+              <!-- Ray Spokes -->
+              <g id="sun-spokes" class="transition-opacity duration-500 opacity-100" stroke="#fbbf24" stroke-width="5" stroke-linecap="round">
+                <line x1="450" y1="15" x2="450" y2="40" />
+                <line x1="450" y1="220" x2="450" y2="245" />
+                <line x1="335" y1="130" x2="360" y2="130" />
+                <line x1="540" y1="130" x2="565" y2="130" />
+                <line x1="368" y1="48" x2="386" y2="66" />
+                <line x1="514" y1="194" x2="532" y2="212" />
+                <line x1="368" y1="212" x2="386" y2="194" />
+                <line x1="514" y1="66" x2="532" y2="48" />
+              </g>
+
+              <!-- Sun Body -->
+              <circle id="sun-body" cx="450" cy="130" r="55" fill="url(#sunGrad)" class="sun-glow transition-all duration-500" />
+              
+              <!-- Sun Label -->
+              <g transform="translate(450, 40)">
+                <rect x="-65" y="-22" width="130" height="34" rx="10" fill="#0f172a" opacity="0.75" stroke="#f59e0b" stroke-width="1.5" />
+                <text x="0" y="2" text-anchor="middle" fill="#fef08a" font-size="18" font-weight="bold">
+                  <tspan class="zh-word">太</tspan><tspan class="zh-mark" font-size="12" dy="-6">ㄊㄞˋ</tspan><tspan font-size="18" dy="6">陽</tspan><tspan class="zh-mark" font-size="12" dy="-6">ㄧㄤˊ</tspan>
+                </text>
+              </g>
+            </g>
+
+            <!-- DIRECT LIGHT RAYS: Sun to Apple -->
+            <g id="rays-sun-to-apple" class="transition-opacity duration-500 opacity-100">
+              <!-- Parallel Pink Rays -->
+              <line x1="520" y1="190" x2="770" y2="350" stroke="#ec4899" stroke-width="3" marker-end="url(#arrowhead)" class="animated-ray" />
+              <line x1="535" y1="205" x2="785" y2="365" stroke="#ec4899" stroke-width="3.5" marker-end="url(#arrowhead)" class="animated-ray" />
+              <line x1="550" y1="220" x2="800" y2="380" stroke="#ec4899" stroke-width="3" marker-end="url(#arrowhead)" class="animated-ray" />
+
+              <!-- Ray Label: 光 ㄍㄨㄤ -->
+              <g transform="translate(685, 235)" class="cursor-pointer" onclick="showHotspotInfo('light')">
+                <rect x="-38" y="-20" width="76" height="32" rx="8" fill="#831843" opacity="0.9" stroke="#f43f5e" stroke-width="1.5" />
+                <text x="0" y="2" text-anchor="middle" fill="#fbcfe8" font-size="18" font-weight="bold">
+                  <tspan>光</tspan><tspan class="zh-mark" font-size="12" dy="-6">ㄍㄨㄤ</tspan>
+                </text>
+              </g>
+            </g>
+
+            <!-- REFLECTED LIGHT RAYS: Apple to Eye -->
+            <g id="rays-apple-to-eye" class="transition-opacity duration-500 opacity-100">
+              <!-- Parallel Reflected Rays -->
+              <line x1="740" y1="410" x2="190" y2="410" stroke="#ec4899" stroke-width="3" marker-end="url(#arrowhead)" class="animated-ray" />
+              <line x1="740" y1="425" x2="190" y2="425" stroke="#ec4899" stroke-width="3.5" marker-end="url(#arrowhead)" class="animated-ray" />
+              <line x1="740" y1="440" x2="190" y2="440" stroke="#ec4899" stroke-width="3" marker-end="url(#arrowhead)" class="animated-ray" />
+            </g>
+
+            <!-- OBSTACLE 1: Between Sun & Apple -->
+            <g id="obstacle-1" class="transition-all duration-300 opacity-0 pointer-events-none" transform="translate(650, 275) rotate(-32)">
+              <rect x="-12" y="-55" width="24" height="110" rx="6" fill="#78350f" stroke="#b45309" stroke-width="3" filter="url(#dropShadow)" />
+              <line x1="0" y1="-45" x2="0" y2="45" stroke="#451a03" stroke-width="2" stroke-dasharray="4 4" />
+              <text x="0" y="4" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="bold" transform="rotate(90)">遮擋物</text>
+            </g>
+
+            <!-- OBSTACLE 2: Between Apple & Eye -->
+            <g id="obstacle-2" class="transition-all duration-300 opacity-0 pointer-events-none" transform="translate(460, 425)">
+              <rect x="-12" y="-60" width="24" height="120" rx="6" fill="#78350f" stroke="#b45309" stroke-width="3" filter="url(#dropShadow)" />
+              <line x1="0" y1="-50" x2="0" y2="50" stroke="#451a03" stroke-width="2" stroke-dasharray="4 4" />
+              <text x="0" y="4" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="bold" transform="rotate(-90)">遮擋物</text>
+            </g>
+
+            <!-- APPLE GROUP -->
+            <g id="group-apple" class="cursor-pointer" onclick="showHotspotInfo('apple')" transform="translate(820, 425)">
+              <!-- Illuminated Apple Body -->
+              <g id="apple-bright" class="transition-all duration-500">
+                <!-- Glossy Red Apple Shape -->
+                <path d="M 0, -25 
+                         C -35, -58 -80, -20 -70, 25 
+                         C -60, 68 -20, 72 0, 54 
+                         C 20, 72 60, 68 70, 25 
+                         C 80, -20 35, -58 0, -25 Z" 
+                      fill="url(#appleGrad)" stroke="#991b1b" stroke-width="2.5" filter="url(#dropShadow)" />
+                <!-- Glossy Highlight Curve -->
+                <path d="M -40, -18 C -58, 5 -52, 32 -35, 45 C -48, 30 -48, -5 -30, -20 Z" fill="#ffffff" opacity="0.5" />
+                <circle cx="-30" cy="-22" r="7" fill="#ffffff" opacity="0.7" />
+                <!-- Stem -->
+                <path d="M 0, -25 C 6, -42 18, -48 24, -54" stroke="#78350f" stroke-width="6" stroke-linecap="round" fill="none" />
+                <!-- Leaf -->
+                <path d="M 2, -34 C 18, -52 48, -45 50, -30 C 35, -24 15, -26 2, -34 Z" fill="#22c55e" stroke="#15803d" stroke-width="2" />
+                <path d="M 6, -34 C 22, -36 38, -34 44, -31" stroke="#166534" stroke-width="1.5" fill="none" />
+              </g>
+
+              <!-- Dark Silhouette Apple (Shown when unlit) -->
+              <g id="apple-dark" class="transition-all duration-500 opacity-0">
+                <path d="M 0, -25 
+                         C -35, -58 -80, -20 -70, 25 
+                         C -60, 68 -20, 72 0, 54 
+                         C 20, 72 60, 68 70, 25 
+                         C 80, -20 35, -58 0, -25 Z" 
+                      fill="url(#appleDarkGrad)" stroke="#1e293b" stroke-width="2" />
+                <path d="M 0, -25 C 6, -42 18, -48 24, -54" stroke="#1e293b" stroke-width="5" stroke-linecap="round" fill="none" />
+              </g>
+
+              <!-- Apple Label -->
+              <g transform="translate(0, 90)">
+                <rect x="-60" y="-20" width="120" height="34" rx="10" fill="#0f172a" opacity="0.8" stroke="#ef4444" stroke-width="1.5" />
+                <text x="0" y="2" text-anchor="middle" fill="#fca5a5" font-size="18" font-weight="bold">
+                  <tspan>蘋</tspan><tspan class="zh-mark" font-size="12" dy="-6">ㄆㄧㄥˊ</tspan><tspan font-size="18" dy="6">果</tspan><tspan class="zh-mark" font-size="12" dy="-6">ㄍㄨㄛˇ</tspan>
+                </text>
+              </g>
+            </g>
+
+            <!-- EYE GROUP -->
+            <g id="group-eye" class="cursor-pointer" onclick="showHotspotInfo('eye')" transform="translate(120, 425)">
+              <!-- Outer Eye Contour & Lid -->
+              <path d="M -60, -45 
+                       C 15, -55 55, -20 75, 0 
+                       C 55, 20 15, 55 -60, 45" 
+                    fill="#fde68a" stroke="#d97706" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#dropShadow)" />
+              
+              <!-- Eyeball Sclera (White) -->
+              <path d="M -25, -38 C 25, -38 52, -18 68, 0 C 52, 18 25, 38 -25, 38 C 0, 20 12, 0 -25, -38 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+              
+              <!-- Iris -->
+              <circle cx="32" cy="0" r="24" fill="url(#irisGrad)" />
+              
+              <!-- Dynamic Pupil (Changes size with brightness) -->
+              <circle id="eye-pupil" cx="32" cy="0" r="10" fill="#0f172a" />
+              
+              <!-- Eye Sparkle/Highlight -->
+              <circle cx="40" cy="-8" r="5" fill="#ffffff" opacity="0.9" />
+              <circle cx="25" cy="8" r="3" fill="#ffffff" opacity="0.7" />
+
+              <!-- Eyelashes -->
+              <path d="M 45, -28 L 62, -44 M 58, -18 L 76, -30 M 68, -6 L 86, -12" stroke="#451a03" stroke-width="3.5" stroke-linecap="round" />
+
+              <!-- Eye Label -->
+              <g transform="translate(0, 90)">
+                <rect x="-60" y="-20" width="120" height="34" rx="10" fill="#0f172a" opacity="0.8" stroke="#f59e0b" stroke-width="1.5" />
+                <text x="0" y="2" text-anchor="middle" fill="#fde68a" font-size="18" font-weight="bold">
+                  <tspan>眼</tspan><tspan class="zh-mark" font-size="12" dy="-6">ㄧㄢˇ</tspan><tspan font-size="18" dy="6">睛</tspan><tspan class="zh-mark" font-size="12" dy="-6">ㄐㄧㄥ</tspan>
+                </text>
+              </g>
+            </g>
+
+          </svg>
+
+          <!-- Floating "Eye's Perspective View" Monitor (What the Eye Sees) -->
+          <div class="absolute top-4 right-4 bg-slate-900/90 border border-slate-700 backdrop-blur rounded-2xl p-3 shadow-xl flex flex-col items-center gap-2 z-20">
+            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-eye text-amber-400"></i>
+              <ruby>眼<rt>ㄧㄢˇ</rt>睛<rt>ㄐㄧㄥ</rt></ruby><ruby>看<rt>ㄎㄢˋ</rt></ruby><ruby>到<rt>ㄉㄠˋ</rt></ruby><ruby>的<rt>ㄉㄜ˙</rt></ruby><ruby>畫<rt>ㄏㄨㄚˋ</rt></ruby><ruby>面<rt>ㄇㄧㄢˋ</rt></ruby>
+            </span>
+            
+            <div id="eye-view-screen" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-2 stroke-slate-600 bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500 shadow-inner">
+              <!-- What Eye Sees: Glowing Apple -->
+              <div id="eye-view-apple" class="flex flex-col items-center transition-all duration-500 transform scale-100">
+                <i class="fa-solid fa-apple-whole text-5xl text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]"></i>
+                <span class="text-[10px] font-bold text-emerald-400 mt-1">清晰可見！</span>
+              </div>
+              
+              <!-- What Eye Sees: Pitch Black Warning -->
+              <div id="eye-view-dark" class="flex flex-col items-center transition-all duration-500 opacity-0 absolute inset-0 justify-center p-1 text-center bg-black">
+                <i class="fa-solid fa-eye-slash text-2xl text-slate-600 mb-1"></i>
+                <span class="text-[11px] font-bold text-slate-400">一片漆黑</span>
+                <span class="text-[9px] text-slate-500">(看不到蘋果)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Explanation Message Card -->
+        <div id="explanation-card" class="bg-slate-800 border border-slate-700 rounded-2xl p-4 md:p-5 shadow-lg flex items-start gap-4 transition-all">
+          <div id="exp-icon-box" class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl shrink-0 mt-0.5">
+            <i class="fa-solid fa-lightbulb"></i>
+          </div>
+          <div class="flex flex-col gap-1">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider">光學現象說明</h3>
+            <p id="explanation-text" class="text-sm md:text-base text-slate-200 leading-relaxed font-medium">
+              <!-- Dynamically populated explanation -->
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Control Panel & Experiment Presets (4 Cols) -->
+      <div class="lg:col-span-4 flex flex-col gap-5">
+
+        <!-- Control Panel Card -->
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-xl flex flex-col gap-6">
+          
+          <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-blue-400"></i>
+              實驗控制台
+            </h2>
+            <span class="text-xs bg-blue-500/20 text-blue-300 font-semibold px-2.5 py-1 rounded-full border border-blue-500/30">
+              即時模擬
+            </span>
+          </div>
+
+          <!-- MAIN TOGGLE: SUN LIGHT SWITCH -->
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">主要光源控制</label>
+            <button id="btn-sun-toggle" onclick="toggleSunSwitch()" class="w-full py-4 px-5 rounded-2xl font-bold text-base md:text-lg flex items-center justify-between transition-all shadow-lg border transform active:scale-[0.98] bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300">
+              <span class="flex items-center gap-3">
+                <i id="sun-switch-icon" class="fa-solid fa-sun text-2xl"></i>
+                <span id="sun-switch-text">陽光：開啟中 (亮)</span>
+              </span>
+              <span id="sun-switch-badge" class="text-xs px-2.5 py-1 rounded-lg bg-slate-950/20 font-extrabold">
+                ON
+              </span>
+            </button>
+          </div>
+
+          <!-- BRIGHTNESS SLIDER -->
+          <div class="flex flex-col gap-2 bg-slate-900/60 p-4 rounded-2xl border border-slate-700/60">
+            <div class="flex justify-between items-center">
+              <label for="slider-brightness" class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <i class="fa-solid fa-circle-half-stroke text-amber-400"></i>
+                陽光亮度調節
+              </label>
+              <span id="brightness-val" class="text-sm font-black text-amber-400">100%</span>
+            </div>
+            <input id="slider-brightness" type="range" min="0" max="100" value="100" oninput="onBrightnessChange(this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400" />
+            <div class="flex justify-between text-[10px] text-slate-500 font-bold px-0.5">
+              <span>0% (全黑)</span>
+              <span>50%</span>
+              <span>100% (最亮)</span>
+            </div>
+          </div>
+
+          <!-- OBSTACLE TOGGLES -->
+          <div class="flex flex-col gap-3">
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+              <span>光路遮擋實驗</span>
+              <i class="fa-solid fa-shield-halved text-slate-500"></i>
+            </label>
+
+            <!-- Obstacle 1 Checkbox -->
+            <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 border border-slate-700 hover:border-slate-600 cursor-pointer transition">
+              <span class="text-xs md:text-sm font-semibold text-slate-200 flex items-center gap-2.5">
+                <i class="fa-solid fa-[#b45309] fa-ban text-amber-600"></i>
+                遮擋「太陽 → 蘋果」光線
+              </span>
+              <input type="checkbox" id="chk-obstacle-1" onchange="toggleObstacle(1)" class="w-5 h-5 rounded text-amber-500 focus:ring-amber-400 accent-amber-500 cursor-pointer" />
+            </label>
+
+            <!-- Obstacle 2 Checkbox -->
+            <label class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/60 border border-slate-700 hover:border-slate-600 cursor-pointer transition">
+              <span class="text-xs md:text-sm font-semibold text-slate-200 flex items-center gap-2.5">
+                <i class="fa-solid fa-[#b45309] fa-ban text-rose-500"></i>
+                遮擋「蘋果 → 眼睛」光線
+              </span>
+              <input type="checkbox" id="chk-obstacle-2" onchange="toggleObstacle(2)" class="w-5 h-5 rounded text-amber-500 focus:ring-amber-400 accent-amber-500 cursor-pointer" />
+            </label>
+          </div>
+
+          <!-- QUICK PRESETS / EXPERIMENT MODES -->
+          <div class="flex flex-col gap-2 pt-2 border-t border-slate-700">
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">快速實驗情境</label>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="applyPreset('normal')" class="p-2.5 rounded-xl bg-slate-700/60 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 transition flex items-center gap-2 justify-center">
+                <i class="fa-solid fa-check text-emerald-400"></i>
+                正常看見蘋果
+              </button>
+              <button onclick="applyPreset('dark')" class="p-2.5 rounded-xl bg-slate-700/60 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 transition flex items-center gap-2 justify-center">
+                <i class="fa-solid fa-moon text-indigo-400"></i>
+                把陽光關掉
+              </button>
+              <button onclick="applyPreset('blockSun')" class="p-2.5 rounded-xl bg-slate-700/60 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 transition flex items-center gap-2 justify-center">
+                <i class="fa-solid fa-umbrella text-amber-400"></i>
+                擋住太陽光
+              </button>
+              <button onclick="applyPreset('blockEye')" class="p-2.5 rounded-xl bg-slate-700/60 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 transition flex items-center gap-2 justify-center">
+                <i class="fa-solid fa-hand text-rose-400"></i>
+                遮住反射光
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Educational Concepts & FAQ Card Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 flex flex-col gap-2">
+        <h4 class="font-bold text-amber-400 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-1"></i>
+          <ruby>物<rt>ㄨˋ</rt>體<rt>ㄊㄧˇ</rt></ruby><ruby>如<rt>ㄖㄨˊ</rt></ruby><ruby>何<rt>ㄏㄜˊ</rt></ruby><ruby>發<rt>ㄈㄚ</rt></ruby><ruby>光<rt>ㄍㄨㄤ</rt></ruby><ruby>與<rt>ㄩˇ</rt></ruby><ruby>反<rt>ㄈㄢˇ</rt></ruby><ruby>射<rt>ㄕㄜˋ</rt></ruby>？
+        </h4>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          太陽是「光源」，會主動發出光線。蘋果本身不會發光，必須靠太陽照射後，將光線「反射」出去。
+        </p>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 flex flex-col gap-2">
+        <h4 class="font-bold text-blue-400 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-2"></i>
+          <ruby>光<rt>ㄍㄨㄤ</rt></ruby><ruby>線<rt>ㄒㄧㄢˋ</rt></ruby><ruby>是<rt>ㄕˋ</rt></ruby><ruby>怎<rt>ㄗㄣˇ</rt></ruby><ruby>麼<rt>ㄇㄛ˙</rt></ruby><ruby>前<rt>ㄑㄧㄢˊ</rt></ruby><ruby>進<rt>ㄐㄧㄣˋ</rt></ruby><ruby>的<rt>ㄉㄜ˙</rt></ruby>？
+        </h4>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          光在均勻介質中是沿著「直線傳播」的。圖中的粉紅箭頭代表光線傳播的方向與路徑。
+        </p>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 flex flex-col gap-2">
+        <h4 class="font-bold text-emerald-400 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-3"></i>
+          <ruby>眼<rt>ㄧㄢˇ</rt>睛<rt>ㄐㄧㄥ</rt></ruby><ruby>怎<rt>ㄗㄣˇ</rt></ruby><ruby>麼<rt>ㄇㄛ˙</rt></ruby><ruby>看<rt>ㄎㄢˋ</rt></ruby><ruby>到<rt>ㄉㄠˋ</rt></ruby><ruby>物<rt>ㄨˋ</rt></ruby><ruby>體<rt>ㄊㄧˇ</rt></ruby>？
+        </h4>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          只有當蘋果反射的光線「順利進入眼睛」時，視覺神經接收訊息傳給大腦，我們才能看到蘋果！
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Interactive Hotspot Info Modal -->
+  <div id="hotspot-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 pointer-events-none">
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 transform transition-all duration-300 scale-95" id="modal-card">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <div class="flex items-center gap-3">
+          <div id="modal-icon-container" class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-circle-info"></i>
+          </div>
+          <h3 id="modal-title" class="text-lg font-bold text-white">元件說明</h3>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <p id="modal-body" class="text-sm text-slate-200 leading-relaxed font-medium">
+        內容說明...
+      </p>
+
+      <button onclick="closeModal()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition mt-2">
+        知道了！
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full text-center py-4 text-xs text-slate-500 border-t border-slate-800/80">
+    © 互動自然科學教室 — 視覺與光反射原理小實驗
+  </footer>
+
+  <!-- Web Application JavaScript Logic -->
+  <script>
+    // State Management
+    const state = {
+      sunOn: true,
+      brightness: 100,
+      obstacle1: false, // Sun -> Apple
+      obstacle2: false, // Apple -> Eye
+      showZhuyin: true,
+      soundEnabled: true
+    };
+
+    // Web Audio API Synthesizer (No external sound files required)
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function playSound(type) {
+      if (!state.soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'switchOn') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'switchOff') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.exponentialRampToValueAtTime(200, now + 0.18);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } else if (type === 'toggle') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(520, now);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'alert') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.setValueAtTime(200, now + 0.08);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
+          osc.start(now);
+          osc.stop(now + 0.16);
+        }
+      } catch (e) {
+        // Audio fallback ignore
+      }
+    }
+
+    // Core Interaction Logic & Render Loop
+    function updateSimulation() {
+      // 1. Calculate effective light hitting the apple
+      const sunEffectiveOutput = state.sunOn ? (state.brightness / 100) : 0;
+      const lightReachesApple = state.obstacle1 ? 0 : sunEffectiveOutput;
+      
+      // 2. Calculate light reflected into the eye
+      const lightReachesEye = state.obstacle2 ? 0 : lightReachesApple;
+
+      // DOM Elements
+      const skyGradient = document.getElementById('sky-gradient');
+      const sunAura = document.getElementById('sun-aura');
+      const sunSpokes = document.getElementById('sun-spokes');
+      const sunBody = document.getElementById('sun-body');
+      const sunSwitchBtn = document.getElementById('btn-sun-toggle');
+      const sunSwitchIcon = document.getElementById('sun-switch-icon');
+      const sunSwitchText = document.getElementById('sun-switch-text');
+      const sunSwitchBadge = document.getElementById('sun-switch-badge');
+
+      const raysSunToApple = document.getElementById('rays-sun-to-apple');
+      const raysAppleToEye = document.getElementById('rays-apple-to-eye');
+
+      const appleBright = document.getElementById('apple-bright');
+      const appleDark = document.getElementById('apple-dark');
+      const eyePupil = document.getElementById('eye-pupil');
+
+      const eyeViewApple = document.getElementById('eye-view-apple');
+      const eyeViewDark = document.getElementById('eye-view-dark');
+
+      const expIconBox = document.getElementById('exp-icon-box');
+      const expText = document.getElementById('explanation-text');
+
+      const obstacle1Elem = document.getElementById('obstacle-1');
+      const obstacle2Elem = document.getElementById('obstacle-2');
+
+      // Update Sky & Sun Styling
+      skyGradient.style.opacity = sunEffectiveOutput.toString();
+
+      if (state.sunOn && state.brightness > 0) {
+        sunAura.style.opacity = (sunEffectiveOutput * 0.9).toString();
+        sunSpokes.style.opacity = sunEffectiveOutput.toString();
+        sunBody.style.fill = 'url(#sunGrad)';
+        sunBody.classList.add('sun-glow');
+
+        sunSwitchBtn.className = "w-full py-4 px-5 rounded-2xl font-bold text-base md:text-lg flex items-center justify-between transition-all shadow-lg border transform active:scale-[0.98] bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300";
+        sunSwitchIcon.className = "fa-solid fa-sun text-2xl text-slate-950";
+        sunSwitchText.innerText = `陽光：開啟中 (${state.brightness}%)`;
+        sunSwitchBadge.innerText = "ON";
+      } else {
+        sunAura.style.opacity = "0";
+        sunSpokes.style.opacity = "0";
+        sunBody.style.fill = '#475569'; // Dim grey sun when turned off
+        sunBody.classList.remove('sun-glow');
+
+        sunSwitchBtn.className = "w-full py-4 px-5 rounded-2xl font-bold text-base md:text-lg flex items-center justify-between transition-all shadow-lg border transform active:scale-[0.98] bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600";
+        sunSwitchIcon.className = "fa-solid fa-moon text-2xl text-indigo-400";
+        sunSwitchText.innerText = "陽光：已關閉 (暗)";
+        sunSwitchBadge.innerText = "OFF";
+      }
+
+      // Rays Opacity
+      raysSunToApple.style.opacity = lightReachesApple.toString();
+      raysAppleToEye.style.opacity = lightReachesEye.toString();
+
+      // Obstacles Visibility
+      if (state.obstacle1) {
+        obstacle1Elem.classList.remove('opacity-0', 'pointer-events-none');
+        obstacle1Elem.classList.add('opacity-100');
+      } else {
+        obstacle1Elem.classList.add('opacity-0', 'pointer-events-none');
+        obstacle1Elem.classList.remove('opacity-100');
+      }
+
+      if (state.obstacle2) {
+        obstacle2Elem.classList.remove('opacity-0', 'pointer-events-none');
+        obstacle2Elem.classList.add('opacity-100');
+      } else {
+        obstacle2Elem.classList.add('opacity-0', 'pointer-events-none');
+        obstacle2Elem.classList.remove('opacity-100');
+      }
+
+      // Apple Appearance (Lit vs Unlit)
+      if (lightReachesApple > 0.05) {
+        appleBright.style.opacity = lightReachesApple.toString();
+        appleDark.style.opacity = (1 - lightReachesApple).toString();
+      } else {
+        appleBright.style.opacity = "0";
+        appleDark.style.opacity = "1";
+      }
+
+      // Pupil reaction (expands in low light, constricts in bright light)
+      if (lightReachesEye > 0.5) {
+        eyePupil.setAttribute('r', '8');
+      } else if (lightReachesEye > 0) {
+        eyePupil.setAttribute('r', '13');
+      } else {
+        eyePupil.setAttribute('r', '18'); // Fully dilated in complete dark
+      }
+
+      // Eye View Screen (What the Eye Sees Preview Box)
+      if (lightReachesEye > 0.05) {
+        eyeViewApple.style.opacity = lightReachesEye.toString();
+        eyeViewApple.style.transform = `scale(${0.7 + lightReachesEye * 0.3})`;
+        eyeViewDark.style.opacity = "0";
+      } else {
+        eyeViewApple.style.opacity = "0";
+        eyeViewDark.style.opacity = "1";
+      }
+
+      // Explanation Box Logic & Audio Triggers
+      if (!state.sunOn || state.brightness === 0) {
+        expIconBox.className = "w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xl shrink-0 mt-0.5";
+        expIconBox.innerHTML = '<i class="fa-solid fa-moon"></i>';
+        expText.innerHTML = `
+          <strong><ruby>關<rt>ㄍㄨㄢ</rt></ruby><ruby>閉<rt>ㄅㄧˋ</rt></ruby><ruby>陽<rt>ㄧㄤˊ</rt></ruby><ruby>光<rt>ㄍㄨㄤ</rt></ruby><ruby>後<rt>ㄏㄡˋ</rt></ruby>：</strong>
+          沒有光照射到蘋果上，蘋果無法反射光線，所以眼睛看不到蘋果！
+        `;
+      } else if (state.obstacle1) {
+        expIconBox.className = "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl shrink-0 mt-0.5";
+        expIconBox.innerHTML = '<i class="fa-solid fa-umbrella"></i>';
+        expText.innerHTML = `
+          <strong><ruby>光<rt>ㄍㄨㄤ</rt></ruby><ruby>路<rt>ㄌㄨˋ</rt></ruby><ruby>被<rt>ㄅㄟˋ</rt></ruby><ruby>遮<rt>ㄓㄜ</rt></ruby><ruby>擋<rt>ㄉㄤˇ</rt></ruby>：</strong>
+          障礙物擋住了陽光，光線無法到達蘋果。蘋果沒有光可以反射，所以眼睛看不到蘋果！
+        `;
+      } else if (state.obstacle2) {
+        expIconBox.className = "w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center text-xl shrink-0 mt-0.5";
+        expIconBox.innerHTML = '<i class="fa-solid fa-hand"></i>';
+        expText.innerHTML = `
+          <strong><ruby>反<rt>ㄈㄢˇ</rt></ruby><ruby>射<rt>ㄕㄜˋ</rt></ruby><ruby>光<rt>ㄍㄨㄤ</rt></ruby><ruby>被<rt>ㄅㄟˋ</rt></ruby><ruby>遮<rt>ㄓㄜ</rt></ruby><ruby>擋<rt>ㄉㄤˇ</rt></ruby>：</strong>
+          陽光順利照到了蘋果，但蘋果反射的光線被遮擋物攔截，無法進入眼睛，所以眼睛看不到蘋果！
+        `;
+      } else {
+        expIconBox.className = "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl shrink-0 mt-0.5";
+        expIconBox.innerHTML = '<i class="fa-solid fa-eye"></i>';
+        expText.innerHTML = `
+          <strong><ruby>視<rt>ㄕˋ</rt></ruby><ruby>覺<rt>ㄐㄩㄝˊ</rt></ruby><ruby>完<rt>ㄨㄢˊ</rt></ruby><ruby>整<rt>ㄓㄥˇ</rt></ruby><ruby>成<rt>ㄔㄥˊ</rt></ruby><ruby>立<rt>ㄌㄧˋ</rt></ruby>：</strong>
+          太陽發出光線，光線照射到蘋果，蘋果將光線反射進入眼睛，眼睛才能清楚看見蘋果！
+        `;
+      }
+    }
+
+    // Toggle Sun On / Off
+    function toggleSunSwitch() {
+      state.sunOn = !state.sunOn;
+      playSound(state.sunOn ? 'switchOn' : 'switchOff');
+      updateSimulation();
+    }
+
+    // Brightness Slider Handler
+    function onBrightnessChange(val) {
+      state.brightness = parseInt(val, 10);
+      document.getElementById('brightness-val').innerText = `${state.brightness}%`;
+      if (state.brightness > 0) state.sunOn = true;
+      updateSimulation();
+    }
+
+    // Obstacle Toggle Handler
+    function toggleObstacle(index) {
+      if (index === 1) {
+        state.obstacle1 = document.getElementById('chk-obstacle-1').checked;
+      } else if (index === 2) {
+        state.obstacle2 = document.getElementById('chk-obstacle-2').checked;
+      }
+      playSound('toggle');
+      updateSimulation();
+    }
+
+    // Preset Scenarios Handler
+    function applyPreset(preset) {
+      playSound('toggle');
+      if (preset === 'normal') {
+        state.sunOn = true;
+        state.brightness = 100;
+        state.obstacle1 = false;
+        state.obstacle2 = false;
+      } else if (preset === 'dark') {
+        state.sunOn = false;
+        state.brightness = 0;
+        state.obstacle1 = false;
+        state.obstacle2 = false;
+      } else if (preset === 'blockSun') {
+        state.sunOn = true;
+        state.brightness = 100;
+        state.obstacle1 = true;
+        state.obstacle2 = false;
+      } else if (preset === 'blockEye') {
+        state.sunOn = true;
+        state.brightness = 100;
+        state.obstacle1 = false;
+        state.obstacle2 = true;
+      }
+
+      // Update UI Controls
+      document.getElementById('slider-brightness').value = state.brightness;
+      document.getElementById('brightness-val').innerText = `${state.brightness}%`;
+      document.getElementById('chk-obstacle-1').checked = state.obstacle1;
+      document.getElementById('chk-obstacle-2').checked = state.obstacle2;
+
+      updateSimulation();
+    }
+
+    // Zhuyin Toggle
+    function toggleZhuyin() {
+      state.showZhuyin = !state.showZhuyin;
+      const btnText = document.getElementById('zhuyin-btn-text');
+      if (state.showZhuyin) {
+        document.body.classList.remove('hide-zhuyin');
+        btnText.innerText = "隱藏注音";
+      } else {
+        document.body.classList.add('hide-zhuyin');
+        btnText.innerText = "顯示注音";
+      }
+      playSound('toggle');
+    }
+
+    // Audio Mute Toggle
+    function toggleSound() {
+      state.soundEnabled = !state.soundEnabled;
+      const icon = document.getElementById('sound-icon');
+      const text = document.getElementById('sound-btn-text');
+      if (state.soundEnabled) {
+        icon.className = "fa-solid fa-volume-high text-emerald-400";
+        text.innerText = "音效開啟";
+        playSound('toggle');
+      } else {
+        icon.className = "fa-solid fa-volume-xmark text-slate-400";
+        text.innerText = "音效靜音";
+      }
+    }
+
+    // Hotspot Info Modal Handler
+    const hotspotData = {
+      sun: {
+        title: "太陽 (光源)",
+        icon: "fa-sun text-amber-400",
+        body: "太陽是這套系統中的「光源」。光源是指自身能夠發光的物體。沒有光源提供光線，環境就會變成黑暗，其他不發光的物體也就無法被看到。"
+      },
+      light: {
+        title: "光線 (直線傳播)",
+        icon: "fa-bolt-lightning text-rose-400",
+        body: "光在空氣中是以「直線」向四周傳播的。圖中的粉紅箭頭標示了光從太陽發出、射向蘋果，再由蘋果反射射向眼睛的方向與路徑。"
+      },
+      apple: {
+        title: "蘋果 (反射物)",
+        icon: "fa-apple-whole text-red-500",
+        body: "蘋果本身「不會發光」。我們之所以能看到蘋果，是因為太陽照射到蘋果後，蘋果將部分光線反射出去。蘋果反射紅光，所以看起來是紅色的！"
+      },
+      eye: {
+        title: "眼睛 (接收器官)",
+        icon: "fa-eye text-amber-300",
+        body: "眼睛是我們接收光線的器官。當蘋果反射的光線進入瞳孔、照射到視網膜上時，視覺神經會把訊息傳送到大腦，大腦解析後我們就「看見」了蘋果！"
+      }
+    };
+
+    function showHotspotInfo(key) {
+      const data = hotspotData[key];
+      if (!data) return;
+
+      playSound('toggle');
+      document.getElementById('modal-icon-container').innerHTML = `<i class="fa-solid ${data.icon}"></i>`;
+      document.getElementById('modal-title').innerText = data.title;
+      document.getElementById('modal-body').innerText = data.body;
+
+      const modal = document.getElementById('hotspot-modal');
+      const modalCard = document.getElementById('modal-card');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modalCard.classList.remove('scale-95');
+      modalCard.classList.add('scale-100');
+    }
+
+    function closeModal() {
+      playSound('toggle');
+      const modal = document.getElementById('hotspot-modal');
+      const modalCard = document.getElementById('modal-card');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modalCard.classList.remove('scale-100');
+      modalCard.classList.add('scale-95');
+    }
+
+    // Initialize Simulation on Window Load
+    window.onload = function() {
+      updateSimulation();
+    };
+  </script>
+</body>
+</html>
