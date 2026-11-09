@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>漫反射與鏡面反射互動學習實驗室</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Noto Sans TC', 'sans-serif'],
+          },
+          colors: {
+            physics: {
+              dark: '#0b0f19',
+              card: '#151c2e',
+              border: '#2a3655',
+              yellow: '#fbbf24',
+              cyan: '#38bdf8',
+              emerald: '#34d399',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a3655;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #38bdf8;
+    }
+    .glass-panel {
+      background: rgba(21, 28, 46, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.35);
+    }
+    .glow-amber {
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.35);
+    }
+  </style>
+</head>
+<body class="bg-physics-dark text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- TOP HEADER -->
+  <header class="border-b border-physics-border bg-physics-card/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-cyan-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg">
+          ☀️
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-300 via-cyan-200 to-cyan-400 bg-clip-text text-transparent">
+            漫反射與鏡面反射互動實驗室
+          </h1>
+          <p class="text-xs text-slate-400">Diffuse & Specular Reflection Interactive Lab</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center bg-slate-900/80 p-1.5 rounded-xl border border-physics-border text-sm font-medium">
+        <button id="tab-lab-btn" onclick="switchTab('lab')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+          <span>🔬</span> 物理模擬實驗
+        </button>
+        <button id="tab-app-btn" onclick="switchTab('app')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <span>💡</span> 日常應用比一比
+        </button>
+        <button id="tab-quiz-btn" onclick="switchTab('quiz')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <span>✍️</span> 隨堂測驗
+        </button>
+        <button id="tab-theory-btn" onclick="switchTab('theory')" class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <span>📚</span> 核心原理
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 flex-1 w-full">
+
+    <!-- ================= TAB 1: PHYSICS LAB ================= -->
+    <section id="tab-lab" class="space-y-6">
+      
+      <!-- Top Presets & Controls Bar -->
+      <div class="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 mr-1">表面材質預設:</span>
+          <button onclick="applyPreset('specular')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition active:scale-95">
+            🪞 平面鏡 (0% 粗糙度)
+          </button>
+          <button onclick="applyPreset('smooth')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition active:scale-95">
+            📱 亮光塑膠/螢幕 (15% 粗糙)
+          </button>
+          <button onclick="applyPreset('diffuse')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition active:scale-95">
+            📄 白紙/霧面 (55% 粗糙)
+          </button>
+          <button onclick="applyPreset('rough')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition active:scale-95">
+            🧱 粗糙木材/水泥 (90% 粗糙)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="btn-toggle-animation" onclick="toggleRayAnimation()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition">
+            ✨ 光子流粒子動畫: <span id="anim-status">開啟</span>
+          </button>
+          <button onclick="resetSimulation()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+            🔄 重置實驗參數
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid Layout: Left Control Panel + Right Interactive Canvas -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left Sidebar Controls -->
+        <div class="lg:col-span-4 space-y-5">
+          
+          <!-- Control Sliders -->
+          <div class="glass-panel p-5 rounded-2xl space-y-5">
+            <h2 class="text-base font-bold text-slate-200 border-b border-physics-border pb-2 flex items-center gap-2">
+              <span>⚙️</span> 實驗參數調控 (Parameters)
+            </h2>
+
+            <!-- Roughness Slider -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-sm">
+                <label for="slider-roughness" class="font-medium text-slate-300 flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> 微觀粗糙度 (Roughness)
+                </label>
+                <span id="val-roughness" class="font-mono text-xs px-2 py-0.5 bg-slate-800 rounded text-emerald-400 font-bold">50%</span>
+              </div>
+              <input type="range" id="slider-roughness" min="0" max="100" value="50" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-400" oninput="updateControls()">
+              <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+                <span>0% (完全鏡面)</span>
+                <span>100% (極致粗糙)</span>
+              </div>
+            </div>
+
+            <!-- Incident Angle Slider -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-sm">
+                <label for="slider-angle" class="font-medium text-slate-300 flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 光束入射角 (Incident Angle)
+                </label>
+                <span id="val-angle" class="font-mono text-xs px-2 py-0.5 bg-slate-800 rounded text-amber-400 font-bold">45°</span>
+              </div>
+              <input type="range" id="slider-angle" min="-75" max="75" value="45" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-400" oninput="updateControls()">
+              <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+                <span>-75° (左斜射)</span>
+                <span>0° (垂直射入)</span>
+                <span>+75° (右斜射)</span>
+              </div>
+            </div>
+
+            <!-- Ray Density Slider -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-sm">
+                <label for="slider-rays" class="font-medium text-slate-300 flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span> 光線密度 (Ray Count)
+                </label>
+                <span id="val-rays" class="font-mono text-xs px-2 py-0.5 bg-slate-800 rounded text-cyan-400 font-bold">25 條</span>
+              </div>
+              <input type="range" id="slider-rays" min="5" max="50" value="25" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400" oninput="updateControls()">
+              <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+                <span>5 條 (稀疏)</span>
+                <span>50 條 (密集)</span>
+              </div>
+            </div>
+
+            <!-- Visual Options Toggles -->
+            <div class="pt-2 border-t border-physics-border space-y-3">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">顯示元件切換:</span>
+              
+              <label class="flex items-center justify-between text-sm cursor-pointer hover:bg-slate-800/50 p-1.5 rounded-lg transition">
+                <span class="text-slate-300 flex items-center gap-2">🔍 微觀放大鏡 (Zoom Lens)</span>
+                <input type="checkbox" id="chk-zoom" checked onchange="updateControls()" class="w-4 h-4 rounded accent-cyan-400 cursor-pointer">
+              </label>
+
+              <label class="flex items-center justify-between text-sm cursor-pointer hover:bg-slate-800/50 p-1.5 rounded-lg transition">
+                <span class="text-slate-300 flex items-center gap-2">📐 顯示微觀局部法線 ($\vec{n}$)</span>
+                <input type="checkbox" id="chk-normals" checked onchange="updateControls()" class="w-4 h-4 rounded accent-emerald-400 cursor-pointer">
+              </label>
+
+              <label class="flex items-center justify-between text-sm cursor-pointer hover:bg-slate-800/50 p-1.5 rounded-lg transition">
+                <span class="text-slate-300 flex items-center gap-2">👁️ 觀察者眼球光強感測區域</span>
+                <input type="checkbox" id="chk-eye-beam" checked onchange="updateControls()" class="w-4 h-4 rounded accent-amber-400 cursor-pointer">
+              </label>
+            </div>
+
+          </div>
+
+          <!-- Real-Time Telemetry & Eye Light Receiver Box -->
+          <div class="glass-panel p-5 rounded-2xl space-y-4">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center justify-between">
+              <span class="flex items-center gap-2">👁️ 觀察者視角光強感應器</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">即時監測</span>
+            </h3>
+
+            <!-- Light Intensity Bar -->
+            <div>
+              <div class="flex justify-between text-xs mb-1 font-semibold">
+                <span class="text-slate-300">眼睛接收到的光線比例:</span>
+                <span id="eye-intensity-text" class="text-cyan-400 font-mono font-bold">0% (0 / 25 條)</span>
+              </div>
+              <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700/60">
+                <div id="eye-intensity-bar" class="h-full bg-gradient-to-r from-cyan-500 to-amber-400 transition-all duration-150 w-0"></div>
+              </div>
+            </div>
+
+            <!-- Insight Box -->
+            <div id="eye-insight-box" class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-1 text-slate-300">
+              <p id="eye-insight-title" class="font-bold text-amber-300">🎯 光強狀態說明</p>
+              <p id="eye-insight-desc" class="text-slate-400 leading-relaxed">
+                移動畫面上方的「👁️ 觀察者」圖示，探索不同角度下光線的散射分佈！
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Canvas Viewport -->
+        <div class="lg:col-span-8 space-y-4">
+          <div class="glass-panel p-3 rounded-2xl relative overflow-hidden group">
+            
+            <!-- Canvas Overlay Header HUD -->
+            <div class="absolute top-5 left-5 right-5 flex justify-between items-center pointer-events-none z-10 text-xs">
+              <div class="bg-slate-950/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700/80 text-slate-300 font-mono flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>模擬狀態: <span id="hud-mode-name" class="text-cyan-300 font-bold">鏡面/漫反射混合</span></span>
+              </div>
+
+              <div class="bg-slate-950/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700/80 text-slate-400 font-mono hidden sm:block">
+                💡 提示：按住滑鼠可拖曳「光源 ☀️」與「觀察者 👁️」
+              </div>
+            </div>
+
+            <!-- Main Interactive Canvas -->
+            <canvas id="sim-canvas" class="w-full h-[480px] sm:h-[540px] bg-physics-dark rounded-xl cursor-crosshair block shadow-inner"></canvas>
+            
+            <!-- Canvas Bottom Legend -->
+            <div class="mt-3 px-2 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-3 font-medium">
+              <div class="flex items-center gap-4">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-1 bg-amber-400 rounded-full"></span> 入射光線 (Incident)
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-1 bg-cyan-400 rounded-full"></span> 反射光線 (Reflected)
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-0.5 border-b border-dashed border-emerald-400"></span> 微觀法線 ($\vec{n}$)
+                </span>
+              </div>
+              <div class="text-slate-500 font-mono text-[11px]">
+                即時運算交點數: <span id="hud-ray-hits" class="text-slate-300 font-bold">25</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ================= TAB 2: EVERYDAY APPLICATIONS ================= -->
+    <section id="tab-app" class="space-y-6 hidden">
+      <div class="glass-panel p-6 rounded-2xl">
+        <h2 class="text-xl font-bold text-slate-100 mb-2 flex items-center gap-2">
+          <span>💡</span> 日常生活中的漫反射與鏡面反射
+        </h2>
+        <p class="text-slate-400 text-sm">
+          透過以下互動場景，點擊切換不同表面屬性，觀察物理原理如何影響我們日常生活中的視覺體驗！
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- App 1: Screen Anti-Glare -->
+        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex justify-between items-start mb-3">
+              <h3 class="font-bold text-base text-slate-200">1. 手機/電腦螢幕保護貼</h3>
+              <span class="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">光學防眩</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">
+              在戶外強光或室內燈光下，光澤螢幕容易形成刺眼的幾何倒影；而霧面保護貼利用微觀粗糙結構將強光漫反射分散。
+            </p>
+
+            <!-- Screen Visual Canvas/SVG Simulator -->
+            <div id="screen-demo-box" class="h-44 bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden flex items-center justify-center p-3">
+              <!-- Content inside rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+              <button onclick="setAppMode('screen', 'glossy')" id="btn-screen-glossy" class="py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition">
+                🪞 光澤屏 (高光)
+              </button>
+              <button onclick="setAppMode('screen', 'matte')" id="btn-screen-matte" class="py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition">
+                📱 霧面防眩屏 (漫反射)
+              </button>
+            </div>
+            <p id="screen-desc" class="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+              加載中...
+            </p>
+          </div>
+        </div>
+
+        <!-- App 2: Cinema Screen vs Mirror -->
+        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex justify-between items-start mb-3">
+              <h3 class="font-bold text-base text-slate-200">2. 電影院投影布幕</h3>
+              <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">全角度視角</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">
+              為什麼電影院使用粗糙白布幕，而不是光滑的鏡面？因為漫反射能將光源向影廳內各個方向均勻散射。
+            </p>
+
+            <!-- Cinema Visual Canvas/SVG Simulator -->
+            <div id="cinema-demo-box" class="h-44 bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden flex items-center justify-center p-3">
+              <!-- Content rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+              <button onclick="setAppMode('cinema', 'white')" id="btn-cinema-white" class="py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition">
+                📄 白色布幕 (漫反射)
+              </button>
+              <button onclick="setAppMode('cinema', 'mirror')" id="btn-cinema-mirror" class="py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition">
+                🪞 鏡面銀幕 (鏡面)
+              </button>
+            </div>
+            <p id="cinema-desc" class="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+              加載中...
+            </p>
+          </div>
+        </div>
+
+        <!-- App 3: Wet vs Dry Asphalt Road -->
+        <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex justify-between items-start mb-3">
+              <h3 class="font-bold text-base text-slate-200">3. 雨天夜間行車眩光</h3>
+              <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">行車安全</span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">
+              乾燥的瀝青路面微觀粗糙會產生漫反射；當下雨路面水漬填平空隙後，路面轉為鏡面反射，引發對向車大燈刺眼眩光。
+            </p>
+
+            <!-- Wet Road Visual Canvas/SVG Simulator -->
+            <div id="road-demo-box" class="h-44 bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden flex items-center justify-center p-3">
+              <!-- Content rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+              <button onclick="setAppMode('road', 'dry')" id="btn-road-dry" class="py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition">
+                🧱 乾燥路面 (漫反射)
+              </button>
+              <button onclick="setAppMode('road', 'wet')" id="btn-road-wet" class="py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition">
+                🌊 積水路面 (鏡面眩光)
+              </button>
+            </div>
+            <p id="road-desc" class="text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+              加載中...
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ================= TAB 3: INTERACTIVE QUIZ ================= -->
+    <section id="tab-quiz" class="space-y-6 hidden">
+      <div class="max-w-3xl mx-auto space-y-6">
+        
+        <!-- Quiz Header Card -->
+        <div class="glass-panel p-6 rounded-2xl flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+              <span>✍️</span> 漫反射與鏡面反射 隨堂觀念測驗
+            </h2>
+            <p class="text-slate-400 text-xs mt-1">測試您對微觀法線、反射定律與日常生活光學現象的理解！</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-slate-400 font-mono block">目前得分</span>
+            <span id="quiz-score" class="text-2xl font-black text-amber-400 font-mono">0 / 50</span>
+          </div>
+        </div>
+
+        <!-- Quiz Container -->
+        <div id="quiz-box" class="glass-panel p-6 sm:p-8 rounded-2xl space-y-6">
+          <!-- Dynamically populated question content -->
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ================= TAB 4: PHYSICS THEORY ================= -->
+    <section id="tab-theory" class="space-y-6 hidden">
+      <div class="max-w-4xl mx-auto space-y-6">
+        
+        <div class="glass-panel p-6 sm:p-8 rounded-2xl space-y-6">
+          <h2 class="text-2xl font-bold bg-gradient-to-r from-amber-300 to-cyan-400 bg-clip-text text-transparent">
+            漫反射 Core Physics Principles
+          </h2>
+
+          <!-- Core Law Section -->
+          <div class="p-5 rounded-xl bg-slate-900/80 border border-physics-border space-y-3">
+            <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2">
+              <span>1.</span> 核心重要觀念：漫反射依然嚴格遵循「反射定律」！
+            </h3>
+            <p class="text-slate-300 text-sm leading-relaxed">
+              許多初學者容易誤以為「因為光線向四面八方散射，所以漫反射不遵守反射定律」。這是一個常見的迷思！
+            </p>
+            <div class="p-3 bg-slate-950 rounded-lg text-xs font-mono text-cyan-300 border-l-4 border-cyan-400 space-y-1">
+              <div>• 反射定律方程式：<span class="text-amber-300 font-bold">入射角 ($\theta_i$) = 反射角 ($\theta_r$)</span></div>
+              <div>• 入射光線、反射光線與該點法線 ($\vec{n}$) 必在同一平面上。</div>
+            </div>
+            <p class="text-slate-400 text-xs leading-relaxed">
+              在微觀層面上（微米或奈米尺度），物體表面充滿了高低起伏的微凸起與凹槽。當平行光束照射過來時，每一條光線接觸到的**「局部法線方向（Normal Vector $\vec{n}$）」各自不同**。因此，即使每一條光線都以相同的局部入射角反射出相同的局部反射角，總體反射光也會散開朝向各個方向。
+            </p>
+          </div>
+
+          <!-- Comparison Table Section -->
+          <div class="space-y-3">
+            <h3 class="text-lg font-bold text-slate-200">2. 鏡面反射 vs 漫反射 比較表</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-800 text-slate-300 border-b border-slate-700">
+                    <th class="p-3 font-semibold">比較項目</th>
+                    <th class="p-3 font-semibold text-cyan-300">鏡面反射 (Specular Reflection)</th>
+                    <th class="p-3 font-semibold text-amber-300">漫反射 (Diffuse Reflection)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-slate-300">
+                  <tr>
+                    <td class="p-3 font-semibold text-slate-400">表面微觀結構</td>
+                    <td class="p-3">極度平整（起伏波長比光波長小）</td>
+                    <td class="p-3">凹凸不平、粗糙（起伏遠大於光波長）</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-semibold text-slate-400">微觀法線方向</td>
+                    <td class="p-3">全區域法線皆平行且一致</td>
+                    <td class="p-3">各點局部法線方向隨機雜亂</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-semibold text-slate-400">反射光線走向</td>
+                    <td class="p-3">平行入射後，反射光仍保持平行集中射出</td>
+                    <td class="p-3">反射光向四面八方散射開來</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-semibold text-slate-400">視覺效果與倒影</td>
+                    <td class="p-3">特定角度極強刺眼，可形成清晰倒影 (Mirror Image)</td>
+                    <td class="p-3">光線柔和不刺眼，各角度皆可看見，無倒影</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-semibold text-slate-400">典型生活材質</td>
+                    <td class="p-3">平面鏡、靜止水面、拋光金屬、光澤保護膜</td>
+                    <td class="p-3">白紙、木材、牆面、影院布幕、霧面塑膠</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Lambertian Reflector Section -->
+          <div class="p-5 rounded-xl bg-slate-900/80 border border-physics-border space-y-2">
+            <h3 class="text-lg font-bold text-emerald-300 flex items-center gap-2">
+              <span>3.</span> 補充知識：朗伯餘弦定律 (Lambert's Cosine Law)
+            </h3>
+            <p class="text-slate-300 text-xs leading-relaxed">
+              理想的理想漫反射體稱為**朗伯反射體 (Lambertian Reflector)**。根據朗伯定律，表面向某一方向散射的光強度與觀察視角與表面法線夾角的餘弦值成正比（$I(\theta) = I_0 \cos\theta$）。因此，無論從哪個角度觀察該表面，觀察到的表面「表觀亮度 (Luminance)」都是完全均勻一致的！這也是為什麼白紙或投影幕從側面看亮度依然適中的原因。
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-physics-border bg-physics-card/50 py-4 text-center text-xs text-slate-500">
+    <p>漫反射與鏡面反射互動學習實驗室 | HTML5 Interactive Canvas Physics Engine</p>
+  </footer>
+
+  <!-- JAVASCRIPT SIMULATION & LOGIC ENGINE -->
+  <script>
+    /* =========================================================
+       STATE MANAGEMENT & CONFIGURATION
+       ========================================================= */
+    const state = {
+      roughness: 50,          // 0 to 100
+      incidentAngle: 45,      // -75 to 75 deg
+      rayCount: 25,           // 5 to 50
+      showZoom: true,
+      showNormals: true,
+      showEyeBeam: true,
+      animatingParticles: true,
+      
+      // Light source location (World coords)
+      lightPos: { x: 220, y: 90 },
+      isDraggingLight: false,
+      
+      // Eye / Observer location (World coords)
+      eyePos: { x: 620, y: 110 },
+      eyeRadius: 28,
+      isDraggingEye: false,
+      
+      // Particle Animation offset
+      particleOffset: 0,
+      
+      // Hit metrics
+      eyeHitCount: 0,
+      surfacePoints: [],
+      rayData: []
+    };
+
+    let canvas, ctx;
+    let animFrameId = null;
+
+    /* =========================================================
+       INITIALIZATION & TAB SWITCHING
+       ========================================================= */
+    window.addEventListener('load', () => {
+      canvas = document.getElementById('sim-canvas');
+      ctx = canvas.getContext('2d');
+
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // Canvas Drag Listeners
+      setupCanvasInteraction();
+
+      // Initialize App Showcases & Quiz
+      renderAppShowcases();
+      initQuiz();
+
+      // Start Loop
+      requestAnimationFrame(gameLoop);
+    });
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+    }
+
+    function switchTab(tabKey) {
+      ['lab', 'app', 'quiz', 'theory'].forEach(key => {
+        const section = document.getElementById(`tab-${key}`);
+        const btn = document.getElementById(`tab-${key}-btn`);
+        if (key === tabKey) {
+          section.classList.remove('hidden');
+          btn.className = "px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30";
+        } else {
+          section.classList.add('hidden');
+          btn.className = "px-3.5 py-1.5 rounded-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200";
+        }
+      });
+
+      if (tabKey === 'lab') {
+        setTimeout(resizeCanvas, 50);
+      }
+    }
+
+    /* =========================================================
+       SURFACE GENERATION & RAY PHYSICS MATH
+       ========================================================= */
+    function generateSurface(width, height, roughness) {
+      const points = [];
+      const baseY = height * 0.68;
+      const segments = 240;
+      const step = width / segments;
+      const amp = (roughness / 100) * 22; // max height bump amplitude
+
+      for (let i = 0; i <= segments; i++) {
+        const x = i * step;
+        let y = baseY;
+
+        if (roughness > 0) {
+          // Multi-frequency sinusoidal noise for realistic micro-roughness
+          y += Math.sin(x * 0.035) * amp * 0.45;
+          y += Math.sin(x * 0.11 + 1.2) * amp * 0.32;
+          y += Math.sin(x * 0.28 + 2.4) * amp * 0.23;
+        }
+
+        points.push({ x, y });
+      }
+      return points;
+    }
+
+    function updateControls() {
+      state.roughness = parseInt(document.getElementById('slider-roughness').value);
+      state.incidentAngle = parseInt(document.getElementById('slider-angle').value);
+      state.rayCount = parseInt(document.getElementById('slider-rays').value);
+      state.showZoom = document.getElementById('chk-zoom').checked;
+      state.showNormals = document.getElementById('chk-normals').checked;
+      state.showEyeBeam = document.getElementById('chk-eye-beam').checked;
+
+      // Update numeric badges
+      document.getElementById('val-roughness').innerText = `${state.roughness}%`;
+      document.getElementById('val-angle').innerText = `${state.incidentAngle}°`;
+      document.getElementById('val-rays').innerText = `${state.rayCount} 條`;
+
+      // Update HUD mode text
+      const hudMode = document.getElementById('hud-mode-name');
+      if (state.roughness === 0) {
+        hudMode.innerText = "完全鏡面反射 (Specular Only)";
+        hudMode.className = "text-cyan-300 font-bold";
+      } else if (state.roughness > 60) {
+        hudMode.innerText = "強漫反射 (High Diffuse)";
+        hudMode.className = "text-amber-300 font-bold";
+      } else {
+        hudMode.innerText = "微觀混合表面 (Mixed Roughness)";
+        hudMode.className = "text-emerald-300 font-bold";
+      }
+    }
+
+    function applyPreset(presetKey) {
+      const sR = document.getElementById('slider-roughness');
+      if (presetKey === 'specular') sR.value = 0;
+      if (presetKey === 'smooth') sR.value = 15;
+      if (presetKey === 'diffuse') sR.value = 55;
+      if (presetKey === 'rough') sR.value = 90;
+      updateControls();
+    }
+
+    function resetSimulation() {
+      document.getElementById('slider-roughness').value = 50;
+      document.getElementById('slider-angle').value = 45;
+      document.getElementById('slider-rays').value = 25;
+      state.lightPos = { x: 220, y: 90 };
+      state.eyePos = { x: 620, y: 110 };
+      updateControls();
+    }
+
+    function toggleRayAnimation() {
+      state.animatingParticles = !state.animatingParticles;
+      document.getElementById('anim-status').innerText = state.animatingParticles ? "開啟" : "關閉";
+    }
+
+    /* =========================================================
+       CANVAS PHYSICS RENDER LOOP
+       ========================================================= */
+    function gameLoop() {
+      if (canvas && ctx) {
+        const w = canvas.getBoundingClientRect().width;
+        const h = canvas.getBoundingClientRect().height;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, w, h);
+
+        // Update animation particle step
+        if (state.animatingParticles) {
+          state.particleOffset = (state.particleOffset + 0.8) % 20;
+        }
+
+        // 1. Generate Surface Points
+        state.surfacePoints = generateSurface(w, h, state.roughness);
+
+        // 2. Calculate Light Beam Rays
+        calculateRays(w, h);
+
+        // 3. Draw Components
+        drawBackgroundGrid(w, h);
+        drawSurface(w, h);
+        drawLightRays(w, h);
+        drawLightSourceHandle();
+        drawEyeObserverHandle();
+
+        if (state.showZoom) {
+          drawZoomLensInset(w, h);
+        }
+
+        // 4. Update Eye Light Counter & Insight Telemetry
+        updateEyeTelemetry();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function drawBackgroundGrid(w, h) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      const gridSize = 30;
+      for (let x = 0; x < w; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+    }
+
+    function calculateRays(w, h) {
+      state.rayData = [];
+      state.eyeHitCount = 0;
+
+      // Beam Direction Vector from incident angle
+      const rad = (state.incidentAngle * Math.PI) / 180;
+      const dx = Math.sin(rad);
+      const dy = Math.cos(rad); // pointing down
+
+      // Orthogonal direction for spreading beam origins
+      const perpX = -dy;
+      const perpY = dx;
+
+      const beamWidth = 140;
+      const raySpacing = beamWidth / (state.rayCount - 1 || 1);
+
+      const lightX = state.lightPos.x;
+      const lightY = state.lightPos.y;
+
+      for (let i = 0; i < state.rayCount; i++) {
+        const offset = -beamWidth / 2 + i * raySpacing;
+        const startX = lightX + perpX * offset;
+        const startY = lightY + perpY * offset;
+
+        // Ray cast against surface line segments
+        const hit = raycastSurface(startX, startY, dx, dy, state.surfacePoints);
+
+        if (hit) {
+          // Calculate local normal vector N (pointing upwards)
+          let nx = -hit.segDy;
+          let ny = hit.segDx;
+          const nLen = Math.hypot(nx, ny);
+          nx /= nLen;
+          ny /= nLen;
+          if (ny > 0) { nx = -nx; ny = -ny; } // Force pointing up
+
+          // Incident vector I
+          const ix = dx;
+          const iy = dy;
+
+          // Dot product (I . N)
+          const dot = ix * nx + iy * ny;
+
+          // Reflected vector R = I - 2*(I . N)*N
+          const rx = ix - 2 * dot * nx;
+          const ry = iy - 2 * dot * ny;
+
+          // Check if reflected ray hits observer eye
+          const hitsEye = checkRayHitsEye(hit.x, hit.y, rx, ry, state.eyePos, state.eyeRadius);
+          if (hitsEye) state.eyeHitCount++;
+
+          state.rayData.push({
+            startX, startY,
+            hitX: hit.x, hitY: hit.y,
+            nx, ny,
+            rx, ry,
+            segAngle: hit.angle,
+            hitsEye
+          });
+        }
+      }
+      document.getElementById('hud-ray-hits').innerText = state.rayData.length;
+    }
+
+    function raycastSurface(ox, oy, dx, dy, points) {
+      let closestHit = null;
+      let minT = Infinity;
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+
+        // Segment vector
+        const sx = p2.x - p1.x;
+        const sy = p2.y - p1.y;
+
+        // Intersection between ray (O + t*D) and segment (P1 + u*S)
+        const denom = dx * sy - dy * sx;
+        if (Math.abs(denom) < 1e-6) continue;
+
+        const t = ((p1.x - ox) * sy - (p1.y - oy) * sx) / denom;
+        const u = ((p1.x - ox) * dy - (p1.y - oy) * dx) / denom;
+
+        if (t > 0 && u >= 0 && u <= 1) {
+          if (t < minT) {
+            minT = t;
+            closestHit = {
+              x: ox + t * dx,
+              y: oy + t * dy,
+              segDx: sx,
+              segDy: sy,
+              angle: Math.atan2(sy, sx)
+            };
+          }
+        }
+      }
+      return closestHit;
+    }
+
+    function checkRayHitsEye(hx, hy, rx, ry, eyePos, radius) {
+      // Ray line: H + t * R
+      const ex = eyePos.x - hx;
+      const ey = eyePos.y - hy;
+
+      const proj = ex * rx + ey * ry;
+      if (proj < 0) return false; // Ray going away
+
+      const closestX = hx + rx * proj;
+      const closestY = hy + ry * proj;
+
+      const distSq = (eyePos.x - closestX) ** 2 + (eyePos.y - closestY) ** 2;
+      return distSq <= (radius + 6) ** 2;
+    }
+
+    /* =========================================================
+       CANVAS DRAWING FUNCTIONS
+       ========================================================= */
+    function drawSurface(w, h) {
+      const pts = state.surfacePoints;
+      if (pts.length < 2) return;
+
+      // Draw surface body fill
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+
+      const surfGrad = ctx.createLinearGradient(0, h * 0.65, 0, h);
+      surfGrad.addColorStop(0, '#1e293b');
+      surfGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = surfGrad;
+      ctx.fill();
+
+      // Draw top edge highlight line
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.strokeStyle = state.roughness === 0 ? '#38bdf8' : '#34d399';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    function drawLightRays(w, h) {
+      state.rayData.forEach(ray => {
+        // 1. Incident Ray (Yellow/Amber Glow)
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.75)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(ray.startX, ray.startY);
+        ctx.lineTo(ray.hitX, ray.hitY);
+        ctx.stroke();
+
+        // 2. Reflected Ray (Cyan / Highlighting Amber if hitting Eye)
+        const rayLen = 550;
+        const refEndX = ray.hitX + ray.rx * rayLen;
+        const refEndY = ray.hitY + ray.ry * rayLen;
+
+        ctx.strokeStyle = ray.hitsEye ? 'rgba(251, 191, 36, 0.95)' : 'rgba(56, 189, 248, 0.65)';
+        ctx.lineWidth = ray.hitsEye ? 2.2 : 1.4;
+        ctx.beginPath();
+        ctx.moveTo(ray.hitX, ray.hitY);
+        ctx.lineTo(refEndX, refEndY);
+        ctx.stroke();
+
+        // Animated Photons / Wave Pulses
+        if (state.animatingParticles) {
+          drawPhotonPulse(ray.startX, ray.startY, ray.hitX, ray.hitY, '#fef08a');
+          drawPhotonPulse(ray.hitX, ray.hitY, refEndX, refEndY, ray.hitsEye ? '#fde047' : '#7dd3fc');
+        }
+
+        // 3. Normal Vector (Dashed Green)
+        if (state.showNormals && state.rayCount <= 30) {
+          const normLen = 22;
+          ctx.strokeStyle = 'rgba(52, 211, 153, 0.6)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(ray.hitX, ray.hitY);
+          ctx.lineTo(ray.hitX + ray.nx * normLen, ray.hitY + ray.ny * normLen);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      });
+    }
+
+    function drawPhotonPulse(x1, y1, x2, y2, color) {
+      const dist = Math.hypot(x2 - x1, y2 - y1);
+      const dx = (x2 - x1) / dist;
+      const dy = (y2 - y1) / dist;
+
+      ctx.fillStyle = color;
+      const step = 45;
+      for (let p = (state.particleOffset % step); p < dist; p += step) {
+        const px = x1 + dx * p;
+        const py = y1 + dy * p;
+        ctx.beginPath();
+        ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawLightSourceHandle() {
+      const { x, y } = state.lightPos;
+
+      // Glow Aura
+      const radGrad = ctx.createRadialGradient(x, y, 4, x, y, 28);
+      radGrad.addColorStop(0, 'rgba(251, 191, 36, 0.9)');
+      radGrad.addColorStop(0.5, 'rgba(251, 191, 36, 0.3)');
+      radGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+      ctx.fillStyle = radGrad;
+      ctx.beginPath();
+      ctx.arc(x, y, 28, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core Sun Icon
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(x, y, 11, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Drag Text Label
+      ctx.fillStyle = '#fef08a';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('☀️ 光源 (可拖曳)', x - 35, y - 22);
+    }
+
+    function drawEyeObserverHandle() {
+      const { x, y } = state.eyePos;
+      const radius = state.eyeRadius;
+
+      // Detection Beam Cone Highlight
+      if (state.showEyeBeam) {
+        ctx.fillStyle = state.eyeHitCount > 0 ? 'rgba(251, 191, 36, 0.12)' : 'rgba(56, 189, 248, 0.06)';
+        ctx.strokeStyle = state.eyeHitCount > 0 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(56, 189, 248, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // Outer Eye Circle
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(x, y, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Iris (Blue / Amber depending on hit)
+      ctx.fillStyle = state.eyeHitCount > 0 ? '#f59e0b' : '#0284c7';
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pupil
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Text Tag
+      ctx.fillStyle = state.eyeHitCount > 0 ? '#fde047' : '#38bdf8';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(`👁️ 觀察者 (${state.eyeHitCount > 0 ? '亮刺眼!' : '柔和'})`, x - 35, y - 22);
+    }
+
+    /* =========================================================
+       ZOOM LENS INSET (微觀特寫放大鏡)
+       ========================================================= */
+    function drawZoomLensInset(w, h) {
+      if (state.rayData.length === 0) return;
+
+      // Pick center ray for zoom inset
+      const midIdx = Math.floor(state.rayData.length / 2);
+      const targetRay = state.rayData[midIdx];
+      if (!targetRay) return;
+
+      const lensX = w - 130;
+      const lensY = 120;
+      const lensR = 75;
+
+      ctx.save();
+
+      // Lens Border & Shadow Box
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, lensR, 0, Math.PI * 2);
+      ctx.fillStyle = '#090d16';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.stroke();
+
+      // Clip inside Lens Circle
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, lensR - 1, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Draw Magnified Micro Surface
+      const zoom = 4.5;
+      const hitX = targetRay.hitX;
+      const hitY = targetRay.hitY;
+
+      ctx.beginPath();
+      let first = true;
+      state.surfacePoints.forEach(pt => {
+        const zx = lensX + (pt.x - hitX) * zoom;
+        const zy = lensY + (pt.y - hitY) * zoom;
+        if (first) { ctx.moveTo(zx, zy); first = false; }
+        else { ctx.lineTo(zx, zy); }
+      });
+      ctx.lineTo(lensX + lensR, lensY + lensR);
+      ctx.lineTo(lensX - lensR, lensY + lensR);
+      ctx.closePath();
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 2 * zoom;
+      ctx.stroke();
+
+      // Draw Local Normal Vector (Green Arrow)
+      const nx = targetRay.nx;
+      const ny = targetRay.ny;
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(lensX, lensY);
+      ctx.lineTo(lensX + nx * 50, lensY + ny * 50);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Incident Vector (Amber)
+      const rad = (state.incidentAngle * Math.PI) / 180;
+      const ix = -Math.sin(rad);
+      const iy = -Math.cos(rad);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(lensX + ix * 50, lensY + iy * 50);
+      ctx.lineTo(lensX, lensY);
+      ctx.stroke();
+
+      // Draw Reflected Vector (Cyan)
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(lensX, lensY);
+      ctx.lineTo(lensX + targetRay.rx * 50, lensY + targetRay.ry * 50);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Overlay Lens Badge Text
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('微觀局部法線特寫 (4.5x)', lensX - 55, lensY + lensR + 18);
+      ctx.fillStyle = '#34d399';
+      ctx.font = '10px monospace';
+      ctx.fillText('局部定律: θi = θr', lensX - 45, lensY + lensR + 32);
+    }
+
+    /* =========================================================
+       CANVAS DRAG & INTERACTION HANDLERS
+       ========================================================= */
+    function setupCanvasInteraction() {
+      function getCanvasCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top
+        };
+      }
+
+      function onDown(e) {
+        const pos = getCanvasCoords(e);
+        // Check Light source drag
+        if (Math.hypot(pos.x - state.lightPos.x, pos.y - state.lightPos.y) < 35) {
+          state.isDraggingLight = true;
+          return;
+        }
+        // Check Eye drag
+        if (Math.hypot(pos.x - state.eyePos.x, pos.y - state.eyePos.y) < 35) {
+          state.isDraggingEye = true;
+          return;
+        }
+      }
+
+      function onMove(e) {
+        const pos = getCanvasCoords(e);
+
+        if (state.isDraggingLight) {
+          state.lightPos.x = Math.max(40, Math.min(canvas.width - 40, pos.x));
+          state.lightPos.y = Math.max(30, Math.min(canvas.height * 0.45, pos.y));
+        } else if (state.isDraggingEye) {
+          state.eyePos.x = Math.max(40, Math.min(canvas.width - 40, pos.x));
+          state.eyePos.y = Math.max(30, Math.min(canvas.height * 0.5, pos.y));
+        }
+      }
+
+      function onUp() {
+        state.isDraggingLight = false;
+        state.isDraggingEye = false;
+      }
+
+      canvas.addEventListener('mousedown', onDown);
+      canvas.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+
+      canvas.addEventListener('touchstart', onDown, { passive: true });
+      canvas.addEventListener('touchmove', onMove, { passive: true });
+      window.addEventListener('touchend', onUp);
+    }
+
+    function updateEyeTelemetry() {
+      const pct = Math.round((state.eyeHitCount / (state.rayCount || 1)) * 100);
+      const bar = document.getElementById('eye-intensity-bar');
+      const txt = document.getElementById('eye-intensity-text');
+      const insightTitle = document.getElementById('eye-insight-title');
+      const insightDesc = document.getElementById('eye-insight-desc');
+
+      bar.style.width = `${pct}%`;
+      txt.innerText = `${pct}% (${state.eyeHitCount} / ${state.rayCount} 條)`;
+
+      if (state.roughness === 0) {
+        if (pct > 50) {
+          insightTitle.innerText = '⚡ 鏡面眩光聚焦！';
+          insightTitle.className = 'font-bold text-amber-300';
+          insightDesc.innerText = '眼睛正好位於鏡面反射光束的集中路徑上，接收到極強光線，產生刺眼耀光。';
+        } else {
+          insightTitle.innerText = '🌑 特定死角無視角';
+          insightTitle.className = 'font-bold text-slate-400';
+          insightDesc.innerText = '鏡面反射將光線全部集中至單一方向。當眼睛稍微偏離反射角時，幾乎接收不到任何光線。';
+        }
+      } else {
+        if (pct > 0) {
+          insightTitle.innerText = '💡 漫反射均勻柔和';
+          insightTitle.className = 'font-bold text-cyan-300';
+          insightDesc.innerText = `微觀粗糙面將光束向四周散射。無論將眼睛移到哪個角度，都能接收到適中且均勻的光線（目前接收 ${pct}%）。`;
+        } else {
+          insightTitle.innerText = '🔍 觀察者視角探索中';
+          insightTitle.className = 'font-bold text-emerald-300';
+          insightDesc.innerText = '請嘗試將眼睛圖示拖曳至畫面上方各個視角，觀察漫反射廣角度散射的效果。';
+        }
+      }
+    }
+
+    /* =========================================================
+       TAB 2: EVERYDAY APPLICATION SHOWCASE DEMOS
+       ========================================================= */
+    const appState = {
+      screen: 'matte',
+      cinema: 'white',
+      road: 'dry'
+    };
+
+    function setAppMode(appKey, mode) {
+      appState[appKey] = mode;
+      renderAppShowcases();
+    }
+
+    function renderAppShowcases() {
+      // 1. Screen Demo
+      const screenBox = document.getElementById('screen-demo-box');
+      const screenDesc = document.getElementById('screen-desc');
+      const btnGlossy = document.getElementById('btn-screen-glossy');
+      const btnMatte = document.getElementById('btn-screen-matte');
+
+      if (appState.screen === 'matte') {
+        btnMatte.className = "py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition font-bold";
+        btnGlossy.className = "py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition";
+        screenDesc.innerText = "霧面防眩光貼膜擁有微觀凹凸結構，將入射燈光散開為柔和背景光，不易產生清晰刺眼的倒影。";
+        screenBox.innerHTML = `
+          <svg viewBox="0 0 300 140" class="w-full h-full">
+            <rect x="70" y="20" width="160" height="90" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+            <!-- Light source -->
+            <circle cx="40" cy="30" r="12" fill="#fbbf24"/>
+            <!-- Scattered Light rays -->
+            <path d="M 40 30 L 120 65" stroke="#fbbf24" stroke-width="2"/>
+            <path d="M 120 65 L 170 30" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <path d="M 120 65 L 200 40" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <path d="M 120 65 L 210 70" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <text x="100" y="100" fill="#34d399" font-size="11" font-weight="bold">霧面結構：光線散射、不刺眼</text>
+          </svg>
+        `;
+      } else {
+        btnGlossy.className = "py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition font-bold";
+        btnMatte.className = "py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition";
+        screenDesc.innerText = "光澤玻璃螢幕表面極度平整，強光照射下產生強烈鏡面反射，直接射入眼睛形成刺眼的燈泡倒影。";
+        screenBox.innerHTML = `
+          <svg viewBox="0 0 300 140" class="w-full h-full">
+            <rect x="70" y="20" width="160" height="90" rx="8" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
+            <!-- Light source -->
+            <circle cx="40" cy="30" r="12" fill="#fbbf24"/>
+            <!-- Specular Light ray directly to eye -->
+            <path d="M 40 30 L 150 65" stroke="#fbbf24" stroke-width="2.5"/>
+            <path d="M 150 65 L 240 30" stroke="#fbbf24" stroke-width="3"/>
+            <circle cx="240" cy="30" r="10" fill="#ef4444"/>
+            <text x="232" y="34" fill="#fff" font-size="10" font-weight="bold">👁️</text>
+            <text x="85" y="100" fill="#f87171" font-size="11" font-weight="bold">鏡面倒影：強光集中、刺眼眩光</text>
+          </svg>
+        `;
+      }
+
+      // 2. Cinema Demo
+      const cinemaBox = document.getElementById('cinema-demo-box');
+      const cinemaDesc = document.getElementById('cinema-desc');
+      const btnWhite = document.getElementById('btn-cinema-white');
+      const btnMirror = document.getElementById('btn-cinema-mirror');
+
+      if (appState.cinema === 'white') {
+        btnWhite.className = "py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition font-bold";
+        btnMirror.className = "py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition";
+        cinemaDesc.innerText = "白色投影布幕利用漫反射將放映機畫面光線向各個方向均勻散射，讓前排、側邊與後排觀眾都能清楚欣賞畫面。";
+        cinemaBox.innerHTML = `
+          <svg viewBox="0 0 300 140" class="w-full h-full">
+            <line x1="150" y1="20" x2="150" y2="100" stroke="#f8fafc" stroke-width="5"/>
+            <!-- Projector -->
+            <rect x="20" y="50" width="25" height="15" rx="3" fill="#38bdf8"/>
+            <path d="M 45 57 L 150 60" stroke="#fbbf24" stroke-width="2"/>
+            <!-- Scattered to all seats -->
+            <path d="M 150 60 L 250 20" stroke="#38bdf8" stroke-width="1.5"/>
+            <path d="M 150 60 L 260 60" stroke="#38bdf8" stroke-width="1.5"/>
+            <path d="M 150 60 L 250 100" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="255" y="25" fill="#34d399" font-size="11">座位A 👁️</text>
+            <text x="265" y="65" fill="#34d399" font-size="11">座位B 👁️</text>
+            <text x="255" y="105" fill="#34d399" font-size="11">座位C 👁️</text>
+          </svg>
+        `;
+      } else {
+        btnMirror.className = "py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition font-bold";
+        btnWhite.className = "py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition";
+        cinemaDesc.innerText = "若換成光滑鏡面，放映機光線全被反射至單一角落，只有極少數特定位置能看到暴亮畫面，其餘區域全黑！";
+        cinemaBox.innerHTML = `
+          <svg viewBox="0 0 300 140" class="w-full h-full">
+            <line x1="150" y1="20" x2="150" y2="100" stroke="#94a3b8" stroke-width="5"/>
+            <!-- Projector -->
+            <rect x="20" y="50" width="25" height="15" rx="3" fill="#38bdf8"/>
+            <path d="M 45 57 L 150 60" stroke="#fbbf24" stroke-width="2"/>
+            <!-- Single mirror path -->
+            <path d="M 150 60 L 250 20" stroke="#ef4444" stroke-width="3"/>
+            <text x="255" y="25" fill="#ef4444" font-size="11" font-weight="bold">暴亮刺眼!</text>
+            <text x="265" y="65" fill="#64748b" font-size="11">座位B ❌ (全黑)</text>
+            <text x="255" y="105" fill="#64748b" font-size="11">座位C ❌ (全黑)</text>
+          </svg>
+        `;
+      }
+
+      // 3. Road Demo
+      const roadBox = document.getElementById('road-demo-box');
+      const roadDesc = document.getElementById('road-desc');
+      const btnDry = document.getElementById('btn-road-dry');
+      const btnWet = document.getElementById('btn-road-wet');
+
+      if (appState.road === 'dry') {
+        btnDry.className = "py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition font-bold";
+        btnWet.className = "py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition";
+        roadDesc.innerText = "乾燥瀝青路面粗糙凹凸，汽車大燈照射後向四周漫反射，駕駛能清晰看見路面標線與路況。";
+        roadBox.innerHTML = `
+          <svg viewBox="0 0 300 140" class="w-full h-full">
+            <path d="M 20 110 Q 80 115 150 108 T 280 112" stroke="#475569" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="60" r="10" fill="#fbbf24"/>
+            <path d="M 50 60 L 150 110" stroke="#fbbf24" stroke-width="2"/>
+            <path d="M 150 110 L 200 60" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <path d="M 150 110 L 240 70" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <path d="M 150 110 L 110 50" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <text x="100" y="30" fill="#34d399" font-size="11" font-weight="bold">漫反射：路況清晰安全</text>
+          </svg>
+        `;
+      } else {
+        btnWet.className = "py-2 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition font-bold";
+        btnDry.className = "py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition";
+        roadDesc.innerText = "積水填平了瀝青路面的微細凹槽，路面轉變為鏡面反射，致使對向車車燈強光直接反射入駕駛眼中產生嚴重眩光。";
+        roadBox.innerHTML = `
+          <svg viewBox="0 0 300 140" class="w-full h-full">
+            <line x1="20" y1="110" x2="280" y2="110" stroke="#38bdf8" stroke-width="5"/>
+            <circle cx="50" cy="70" r="10" fill="#fbbf24"/>
+            <path d="M 50 70 L 150 110" stroke="#fbbf24" stroke-width="2.5"/>
+            <path d="M 150 110 L 250 70" stroke="#ef4444" stroke-width="3"/>
+            <circle cx="250" cy="70" r="10" fill="#ef4444"/>
+            <text x="242" y="74" fill="#fff" font-size="10" font-weight="bold">👁️</text>
+            <text x="80" y="30" fill="#f87171" font-size="11" font-weight="bold">水面鏡面反射：極度刺眼眩光!</text>
+          </svg>
+        `;
+      }
+    }
+
+    /* =========================================================
+       TAB 3: INTERACTIVE MINI QUIZ ENGINE
+       ========================================================= */
+    const quizQuestions = [
+      {
+        question: "1. 漫反射現象中，每一條光線照射到凹凸不平的表面時，是否依然遵守「光的反射定律」？",
+        options: [
+          "A. 是，每一微小接觸點均遵守反射定律 (入射角 = 反射角)",
+          "B. 否，散射光線方向隨機，不再遵守反射定律",
+          "C. 只有入射角為 0 度垂直照射時才遵守",
+          "D. 視材質決定，塑膠遵守，紙張不遵守"
+        ],
+        answer: 0,
+        explanation: "正解為 A！漫反射並未違背反射定律。微觀下無數微小凹凸面上，各點法線方向各自不同，導致平行光反射後向四面八方散射，但對每個微觀局部點而言，入射角仍等於反射角。"
+      },
+      {
+        question: "2. 下雨夜晚開車時，駕駛會發現原本粗糙的瀝青路面變得極易產生刺眼的強烈眩光，這是因為：",
+        options: [
+          "A. 雨水吸收了大部分光線，只留下紅光",
+          "B. 雨水積在路面凹槽將微觀空隙填平，漫反射轉變為鏡面反射",
+          "C. 雨水產生折射效果，使車燈功率變大",
+          "D. 雨水改變了大燈光線的波長"
+        ],
+        answer: 1,
+        explanation: "正解為 B！雨水積在粗糙路面凹槽內形成平整水面，原本向四面八方散射的漫反射轉變為集中方向的鏡面反射，當強光集中直射駕駛眼睛時即產生刺眼眩光。"
+      },
+      {
+        question: "3. 電影院選用表面粗糙的「白色布幕」作為投影介面，最主要的物理考量是：",
+        options: [
+          "A. 利用鏡面反射將所有光線集中投射到正中央觀眾",
+          "B. 利用漫反射讓全場各個角度的觀眾都能看到亮度均勻的畫面",
+          "C. 粗糙表面能吸收多餘聲波，改善音響品質",
+          "D. 白布幕能過濾有害藍光"
+        ],
+        answer: 1,
+        explanation: "正解為 B！漫反射能將光線向各個方向散射，因此無論觀眾坐在劇院左側、右側或後方，眼睛都能接收到適當的反射光，不會發生特定角度極亮、其他角度全黑的狀況。"
+      },
+      {
+        question: "4. 霧面防眩光保護貼比高光亮面保護貼更不易產生「清晰的人燈倒影」，其主因為：",
+        options: [
+          "A. 霧面保護貼吸收了 100% 的環境光",
+          "B. 微觀粗糙表面使反射光發生漫反射，削弱集中反射形成的清晰幾何倒影",
+          "C. 霧面保護貼內部塗有偏光膜",
+          "D. 霧面保護貼增加了螢幕自身的發光功率"
+        ],
+        answer: 1,
+        explanation: "正解為 B！霧面保護貼表面具有微觀凹凸結構，把原本集中的鏡面倒影散射開來，變成柔和、廣分散的背景光，從而消除清晰刺眼的幾何倒影。"
+      },
+      {
+        question: "5. 若欲將一個原本為漫反射的霧面塑膠表面改造為鏡面反射，以下何者做法最有效？",
+        options: [
+          "A. 使用粗糙砂紙進一步刮磨表面",
+          "B. 進行表面拋光 (Polishing) 或塗抹能填平微孔的透明漆",
+          "C. 將塑膠放置於極低溫環境中",
+          "D. 使用強烈紅外線照射"
+        ],
+        answer: 1,
+        explanation: "正解為 B！拋光或塗填透明漆可以大幅消除微觀結構的高低起伏（降低粗糙度 amplitude），使法線方向趨於一致，進而實現鏡面反射。"
+      }
+    ];
+
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let selectedOption = null;
+
+    function initQuiz() {
+      currentQuizIndex = 0;
+      quizScore = 0;
+      selectedOption = null;
+      renderQuizQuestion();
+    }
+
+    function renderQuizQuestion() {
+      const quizBox = document.getElementById('quiz-box');
+      document.getElementById('quiz-score').innerText = `${quizScore} / 50`;
+
+      if (currentQuizIndex >= quizQuestions.length) {
+        // Quiz Complete Screen
+        quizBox.innerHTML = `
+          <div class="text-center py-8 space-y-4">
+            <div class="text-5xl">🎉</div>
+            <h3 class="text-2xl font-bold text-slate-100">恭喜完成觀念測驗！</h3>
+            <p class="text-slate-300 text-sm">您的最終得分為 <span class="text-amber-400 font-bold font-mono text-xl">${quizScore} / 50</span> 分</p>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">
+              ${quizScore >= 40 ? '太棒了！您已徹底掌握漫反射與微觀法線的核心物理觀念！' : '繼續加油！建議回到「物理模擬實驗」頁面親自調整粗糙度與觀察法線變化。'}
+            </p>
+            <button onclick="initQuiz()" class="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm transition">
+              🔄 重新挑戰測驗
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      const q = quizQuestions[currentQuizIndex];
+
+      let optionsHtml = q.options.map((opt, idx) => `
+        <button onclick="selectQuizOption(${idx})" class="w-full text-left p-3.5 rounded-xl border border-slate-700/80 bg-slate-900/60 hover:bg-slate-800 hover:border-cyan-500/50 transition text-xs sm:text-sm text-slate-200 font-medium flex items-center justify-between">
+          <span>${opt}</span>
+          <span class="w-4 h-4 rounded-full border border-slate-600 inline-block"></span>
+        </button>
+      `).join('');
+
+      quizBox.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-mono border-b border-slate-800 pb-2">
+            <span>問題 ${currentQuizIndex + 1} / ${quizQuestions.length}</span>
+            <span>單選題</span>
+          </div>
+          <h3 class="text-base sm:text-lg font-bold text-slate-100 leading-snug">${q.question}</h3>
+          <div id="quiz-options-container" class="space-y-2.5 pt-2">
+            ${optionsHtml}
+          </div>
+          <div id="quiz-feedback" class="hidden p-4 rounded-xl text-xs leading-relaxed space-y-1"></div>
+          <div class="flex justify-end pt-2">
+            <button id="btn-next-quiz" onclick="nextQuizQuestion()" disabled class="px-5 py-2 rounded-lg bg-slate-800 text-slate-500 font-bold text-xs cursor-not-allowed transition">
+              下一題 ➔
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectQuizOption(idx) {
+      if (selectedOption !== null) return; // prevent re-select
+      selectedOption = idx;
+
+      const q = quizQuestions[currentQuizIndex];
+      const isCorrect = idx === q.answer;
+      const feedback = document.getElementById('quiz-feedback');
+      const nextBtn = document.getElementById('btn-next-quiz');
+      const optContainer = document.getElementById('quiz-options-container');
+
+      if (isCorrect) {
+        quizScore += 10;
+        document.getElementById('quiz-score').innerText = `${quizScore} / 50`;
+        feedback.className = "p-4 rounded-xl text-xs leading-relaxed bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 block";
+        feedback.innerHTML = `<span class="font-bold">✨ 回答正確！</span> ${q.explanation}`;
+      } else {
+        feedback.className = "p-4 rounded-xl text-xs leading-relaxed bg-rose-500/10 border border-rose-500/30 text-rose-300 block";
+        feedback.innerHTML = `<span class="font-bold">❌ 回答錯誤。</span> ${q.explanation}`;
+      }
+
+      // Highlight options
+      const btns = optContainer.querySelectorAll('button');
+      btns.forEach((btn, bIdx) => {
+        if (bIdx === q.answer) {
+          btn.className = "w-full text-left p-3.5 rounded-xl border border-emerald-500/80 bg-emerald-500/20 text-emerald-200 text-xs sm:text-sm font-bold flex items-center justify-between";
+        } else if (bIdx === idx) {
+          btn.className = "w-full text-left p-3.5 rounded-xl border border-rose-500/80 bg-rose-500/20 text-rose-200 text-xs sm:text-sm font-medium flex items-center justify-between";
+        } else {
+          btn.className = "w-full text-left p-3.5 rounded-xl border border-slate-800 bg-slate-900/30 text-slate-500 text-xs sm:text-sm opacity-50 cursor-not-allowed";
+        }
+      });
+
+      nextBtn.disabled = false;
+      nextBtn.className = "px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition cursor-pointer";
+    }
+
+    function nextQuizQuestion() {
+      currentQuizIndex++;
+      selectedOption = null;
+      renderQuizQuestion();
+    }
+  </script>
+</body>
+</html>
